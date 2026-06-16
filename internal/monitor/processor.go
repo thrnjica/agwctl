@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/thrnjica/agwctl/internal/models"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+
+	"github.com/thrnjica/agwctl/internal/models"
 )
 
 // Processor handles JSON manipulation for API documents using [gjson] and [sjson].

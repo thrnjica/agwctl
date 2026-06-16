@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -123,7 +124,7 @@ func run() error {
 
 	// Start polling
 	log.Info("Starting polling loop")
-	if err := poller.Start(ctx); err != nil && err != context.Canceled {
+	if err := poller.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("poller error: %w", err)
 	}
 

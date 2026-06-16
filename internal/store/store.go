@@ -1,13 +1,17 @@
+//go:build goexperiment.jsonv2
+
 // Package store provides persistent storage for API processing state using NutsDB.
 package store
 
 import (
-	"encoding/json/v2"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/nutsdb/nutsdb"
+
 	"github.com/thrnjica/agwctl/internal/models"
 )
 
@@ -61,7 +65,7 @@ func (r *Store) Processed(id string) (bool, error) {
 	err := r.ndb.View(func(tx *nutsdb.Tx) error {
 		_, err := tx.Get(bucketDone, []byte(id))
 		if err != nil {
-			if err == nutsdb.ErrKeyNotFound || err == nutsdb.ErrBucketNotFound {
+			if errors.Is(err, nutsdb.ErrKeyNotFound) || errors.Is(err, nutsdb.ErrBucketNotFound) {
 				exists = false
 				return nil
 			}
@@ -108,8 +112,8 @@ func (r *Store) Get(id string) (*models.Service, error) {
 		return json.Unmarshal(entry, &meta)
 	})
 	if err != nil {
-		if err == nutsdb.ErrKeyNotFound {
-			return nil, fmt.Errorf("Service not found: %s", id)
+		if errors.Is(err, nutsdb.ErrKeyNotFound) {
+			return nil, fmt.Errorf("service not found: %s", id)
 		}
 		return nil, fmt.Errorf("get processed service: %w", err)
 	}
@@ -124,7 +128,7 @@ func (r *Store) IDs() ([]string, error) {
 	err := r.ndb.View(func(tx *nutsdb.Tx) error {
 		keys, _, err := tx.GetAll(bucketDone)
 		if err != nil {
-			if err == nutsdb.ErrBucketNotFound {
+			if errors.Is(err, nutsdb.ErrBucketNotFound) {
 				return nil
 			}
 			return err
@@ -198,7 +202,7 @@ func (r *Store) LastPoll() (time.Time, error) {
 		return nil
 	})
 	if err != nil {
-		if err == nutsdb.ErrKeyNotFound || err == nutsdb.ErrBucketNotFound {
+		if errors.Is(err, nutsdb.ErrKeyNotFound) || errors.Is(err, nutsdb.ErrBucketNotFound) {
 			return time.Time{}, nil // Return zero time if never polled
 		}
 		return time.Time{}, fmt.Errorf("get last poll: %w", err)
@@ -214,7 +218,7 @@ func (r *Store) Stats() (map[string]any, error) {
 	err := r.ndb.View(func(tx *nutsdb.Tx) error {
 		// Count processed APIs
 		keys, _, err := tx.GetAll(bucketDone)
-		if err != nil && err != nutsdb.ErrBucketNotFound {
+		if err != nil && !errors.Is(err, nutsdb.ErrBucketNotFound) {
 			return err
 		}
 		stats["processed_apis_count"] = len(keys)
