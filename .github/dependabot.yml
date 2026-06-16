@@ -9,8 +9,6 @@ updates:
       time: "06:00"
       timezone: "Europe/Vienna"
     open-pull-requests-limit: 10
-    reviewers:
-      - "thrnjica"
     labels:
       - "dependencies"
       - "go"
@@ -27,8 +25,6 @@ updates:
       time: "06:00"
       timezone: "Europe/Vienna"
     open-pull-requests-limit: 5
-    reviewers:
-      - "thrnjica"
     labels:
       - "dependencies"
       - "github-actions"
