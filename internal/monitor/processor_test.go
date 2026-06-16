@@ -7,6 +7,7 @@ import (
 )
 
 func TestExtractAPIMetadata(t *testing.T) {
+	t.Parallel()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	processor := NewProcessor(logger)
 
@@ -52,6 +53,7 @@ func TestExtractAPIMetadata(t *testing.T) {
 }
 
 func TestAddTeamsToAPI(t *testing.T) {
+	t.Parallel()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	processor := NewProcessor(logger)
 
@@ -119,6 +121,7 @@ func TestAddTeamsToAPI(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			modifiedJSON, err := processor.AddTeamsToAPI(tt.apiJSON, tt.teamsToAdd)
 			if err != nil {
 				t.Fatalf("AddTeamsToAPI() error = %v", err)
@@ -138,6 +141,7 @@ func TestAddTeamsToAPI(t *testing.T) {
 }
 
 func TestGetTeamIDs(t *testing.T) {
+	t.Parallel()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	processor := NewProcessor(logger)
 
