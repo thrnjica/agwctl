@@ -23,7 +23,7 @@ func NewProcessor(log *slog.Logger) *Processor {
 }
 
 // ExtractAPIMetadata extracts metadata from an API JSON document using [gjson].
-func (p *Processor) ExtractAPIMetadata(apiJSON []byte) (*models.APIMetadata, error) {
+func (p *Processor) ExtractAPIMetadata(apiJSON []byte) (*models.ServiceIMetadata, error) {
 	result := gjson.ParseBytes(apiJSON)
 
 	// Extract from apiResponse.api structure
@@ -32,7 +32,7 @@ func (p *Processor) ExtractAPIMetadata(apiJSON []byte) (*models.APIMetadata, err
 		return nil, fmt.Errorf("apiResponse.api not found in JSON")
 	}
 
-	meta := &models.APIMetadata{
+	meta := &models.ServiceIMetadata{
 		ID:       apiObj.Get("id").String(),
 		Name:     apiObj.Get("apiName").String(),
 		Version:  apiObj.Get("apiVersion").String(),

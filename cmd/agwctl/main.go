@@ -68,7 +68,7 @@ func run() error {
 	)
 
 	// Initialize store repository
-	repo, err := store.NewRepository(cfg.DBPath, log)
+	repo, err := store.New(cfg.DBPath, log)
 	if err != nil {
 		return fmt.Errorf("initialize repository: %w", err)
 	}
@@ -79,16 +79,16 @@ func run() error {
 	}()
 
 	// Initialize access profile manager
-	profMgr := monitor.NewAccessProfileManager(c, log)
+	profMgr := monitor.NewTeamManager(c, log)
 
 	// Refresh access profiles cache
 	log.Info("Fetching access profiles (teams)")
-	if err := profMgr.RefreshCache(ctx); err != nil {
+	if err := profMgr.Refresh(ctx); err != nil {
 		return fmt.Errorf("refresh access profiles: %w", err)
 	}
 
 	// Resolve team names to IDs
-	teamIDs, err := profMgr.ResolveTeamNames(cfg.Teams)
+	teamIDs, err := profMgr.Resolve(cfg.Teams)
 	if err != nil {
 		return fmt.Errorf("resolve team names: %w", err)
 	}
@@ -114,7 +114,7 @@ func run() error {
 	)
 
 	// Print database stats
-	stats, err := repo.GetStats()
+	stats, err := repo.Stats()
 	if err != nil {
 		log.Warn("Failed to get database stats", slog.Any("error", err))
 	} else {

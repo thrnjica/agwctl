@@ -112,8 +112,8 @@ func newOptimizedTransport() *http.Transport {
 	}
 }
 
-// buildTransport creates a layered transport with all decorators.
-func buildTransport(username, password, version string, rps int) http.RoundTripper {
+// newTransport creates a layered transport with all decorators.
+func newTransport(username, password, version string, rps int) http.RoundTripper {
 	// Start with optimized base transport
 	base := newOptimizedTransport()
 

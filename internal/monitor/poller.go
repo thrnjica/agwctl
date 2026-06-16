@@ -15,8 +15,8 @@ import (
 // Poller implements the polling loop for detecting and processing new APIs.
 type Poller struct {
 	client   *client.Client
-	repo     *store.Repository
-	profMgr  *AccessProfileManager
+	repo     *store.Store
+	teamMgr  *TeamManager
 	proc     *Processor
 	interval time.Duration
 	pageSize int
@@ -28,8 +28,8 @@ type Poller struct {
 // NewPoller creates a new poller instance.
 func NewPoller(
 	c *client.Client,
-	repo *store.Repository,
-	profMgr *AccessProfileManager,
+	repo *store.Store,
+	teamMgr *TeamManager,
 	proc *Processor,
 	interval time.Duration,
 	pageSize int,
@@ -40,7 +40,7 @@ func NewPoller(
 	return &Poller{
 		client:   c,
 		repo:     repo,
-		profMgr:  profMgr,
+		teamMgr:  teamMgr,
 		proc:     proc,
 		interval: interval,
 		pageSize: pageSize,
@@ -59,7 +59,7 @@ func (p *Poller) Start(ctx context.Context) error {
 		slog.Bool("dry_run", p.dryRun))
 
 	// Initial poll immediately
-	if err := p.pollOnce(ctx); err != nil {
+	if err := p.poll(ctx); err != nil {
 		p.log.Error("Initial poll failed", slog.Any("error", err))
 	}
 
@@ -73,20 +73,20 @@ func (p *Poller) Start(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-ticker.C:
-			if err := p.pollOnce(ctx); err != nil {
+			if err := p.poll(ctx); err != nil {
 				p.log.Error("Poll failed", slog.Any("error", err))
 			}
 		}
 	}
 }
 
-// pollOnce performs a single poll cycle.
-func (p *Poller) pollOnce(ctx context.Context) error {
+// poll performs a single poll cycle.
+func (p *Poller) poll(ctx context.Context) error {
 	start := time.Now()
 	p.log.Info("Starting poll cycle")
 
 	// Fetch all API IDs with pagination
-	apiIDs, err := p.fetchAllAPIIDs(ctx)
+	apiIDs, err := p.list(ctx)
 	if err != nil {
 		return fmt.Errorf("fetch all API IDs: %w", err)
 	}
@@ -96,14 +96,14 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 		slog.Int64("duration_ms", time.Since(start).Milliseconds()))
 
 	// Detect new APIs
-	newAPIIDs, err := p.detectNewAPIs(apiIDs)
+	newAPIIDs, err := p.pending(apiIDs)
 	if err != nil {
 		return fmt.Errorf("detect new APIs: %w", err)
 	}
 
 	if len(newAPIIDs) == 0 {
 		p.log.Info("No new APIs detected")
-		if err := p.repo.SetLastPoll(time.Now()); err != nil {
+		if err := p.repo.UpdateLastPoll(time.Now()); err != nil {
 			p.log.Warn("Failed to update last poll time", slog.Any("error", err))
 		}
 		return nil
@@ -116,7 +116,7 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 	failed := 0
 
 	for _, apiID := range newAPIIDs {
-		if err := p.processNewAPI(ctx, apiID); err != nil {
+		if err := p.process(ctx, apiID); err != nil {
 			p.log.Error("Failed to process API",
 				slog.String("api_id", apiID),
 				slog.Any("error", err))
@@ -127,7 +127,7 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 	}
 
 	// Update last poll time
-	if err := p.repo.SetLastPoll(time.Now()); err != nil {
+	if err := p.repo.UpdateLastPoll(time.Now()); err != nil {
 		p.log.Warn("Failed to update last poll time", slog.Any("error", err))
 	}
 
@@ -140,8 +140,8 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 	return nil
 }
 
-// fetchAllAPIIDs fetches all API IDs using pagination.
-func (p *Poller) fetchAllAPIIDs(ctx context.Context) ([]string, error) {
+// list fetches all API IDs using pagination.
+func (p *Poller) list(ctx context.Context) ([]string, error) {
 	var allIDs []string
 	from := 0
 	page := 1
@@ -152,7 +152,7 @@ func (p *Poller) fetchAllAPIIDs(ctx context.Context) ([]string, error) {
 			slog.Int("from", from),
 			slog.Int("size", p.pageSize))
 
-		resp, err := p.client.ListAPIs(ctx, from, p.pageSize)
+		resp, err := p.client.ListServices(ctx, from, p.pageSize)
 		if err != nil {
 			return nil, fmt.Errorf("list APIs (page %d): %w", page, err)
 		}
@@ -179,36 +179,36 @@ func (p *Poller) fetchAllAPIIDs(ctx context.Context) ([]string, error) {
 	return allIDs, nil
 }
 
-// detectNewAPIs identifies which APIs have not been processed yet.
-func (p *Poller) detectNewAPIs(apiIDs []string) ([]string, error) {
-	var newIDs []string
+// pending identifies which APIs have not been processed yet.
+func (p *Poller) pending(ids []string) ([]string, error) {
+	var diff []string
 
-	for _, id := range apiIDs {
-		processed, err := p.repo.IsProcessed(id)
+	for _, id := range ids {
+		seen, err := p.repo.Processed(id)
 		if err != nil {
 			return nil, fmt.Errorf("check if processed %s: %w", id, err)
 		}
 
-		if !processed {
-			newIDs = append(newIDs, id)
+		if !seen {
+			diff = append(diff, id)
 		}
 	}
 
-	return newIDs, nil
+	return diff, nil
 }
 
-// processNewAPI processes a single new API by adding teams to it.
-func (p *Poller) processNewAPI(ctx context.Context, apiID string) error {
+// process processes a single new API by adding teams to it.
+func (p *Poller) process(ctx context.Context, apiID string) error {
 	p.log.Info("Processing new API", slog.String("api_id", apiID))
 
 	// Fetch full API document
-	apiJSON, err := p.client.GetAPI(ctx, apiID)
+	api, err := p.client.GetService(ctx, apiID)
 	if err != nil {
 		return fmt.Errorf("get API: %w", err)
 	}
 
 	// Extract metadata
-	meta, err := p.proc.ExtractAPIMetadata(apiJSON)
+	meta, err := p.proc.ExtractAPIMetadata(api)
 	if err != nil {
 		return fmt.Errorf("extract metadata: %w", err)
 	}
@@ -221,14 +221,14 @@ func (p *Poller) processNewAPI(ctx context.Context, apiID string) error {
 		slog.Int("existing_teams", len(meta.ExistingTeams)))
 
 	// Add teams to API JSON
-	modJSON, err := p.proc.AddTeamsToAPI(apiJSON, p.teamIDs)
+	mod, err := p.proc.AddTeamsToAPI(api, p.teamIDs)
 	if err != nil {
 		return fmt.Errorf("add teams to API: %w", err)
 	}
 
 	// Update API (unless dry-run)
 	if !p.dryRun {
-		if err := p.client.UpdateAPI(ctx, apiID, modJSON); err != nil {
+		if err := p.client.UpdateService(ctx, apiID, mod); err != nil {
 			return fmt.Errorf("update API: %w", err)
 		}
 		p.log.Info("API updated successfully",
@@ -241,7 +241,7 @@ func (p *Poller) processNewAPI(ctx context.Context, apiID string) error {
 	}
 
 	// Mark as processed
-	procAPI := &models.ProcessedAPI{
+	procAPI := &models.Service{
 		ID:          meta.ID,
 		Name:        meta.Name,
 		Version:     meta.Version,
