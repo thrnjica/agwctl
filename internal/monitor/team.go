@@ -42,11 +42,11 @@ func (t *TeamManager) Refresh(ctx context.Context) error {
 
 	// Clear and rebuild cache
 	t.cache = make(map[string]string)
-	for _, profile := range res.AccessProfiles {
-		t.cache[profile.Name] = profile.ID
+	for _, team := range res.Teams {
+		t.cache[team.Name] = team.ID
 		t.log.Debug("Cached team",
-			slog.String("name", profile.Name),
-			slog.String("id", profile.ID))
+			slog.String("name", team.Name),
+			slog.String("id", team.ID))
 	}
 
 	t.log.Info("Team cache refreshed",

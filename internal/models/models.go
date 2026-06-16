@@ -13,7 +13,7 @@ type Team struct {
 
 // TeamListResponse represents the response from GET /accessProfiles.
 type TeamListResponse struct {
-	AccessProfiles []Team `json:"accessProfiles"`
+	Teams []Team `json:"accessProfiles"`
 }
 
 // ServiceListResponse represents the response from GET /apis.
