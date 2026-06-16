@@ -50,20 +50,22 @@ func (t *TeamManager) Refresh(ctx context.Context) error {
 		return fmt.Errorf("list teams: %w", err)
 	}
 
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	// Clear and rebuild cache
-	t.cache = make(map[string]string)
+	// Build new cache outside of lock to minimize lock duration
+	newCache := make(map[string]string, len(res.Teams))
 	for _, team := range res.Teams {
-		t.cache[team.Name] = team.ID
+		newCache[team.Name] = team.ID
 		t.log.Debug("Cached team",
 			slog.String("name", team.Name),
 			slog.String("id", team.ID))
 	}
 
+	// Atomically swap the cache
+	t.mu.Lock()
+	t.cache = newCache
+	t.mu.Unlock()
+
 	t.log.Info("Team cache refreshed",
-		slog.Int("count", len(t.cache)))
+		slog.Int("count", len(newCache)))
 
 	return nil
 }
