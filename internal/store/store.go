@@ -2,7 +2,7 @@
 package store
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"time"
@@ -70,7 +70,6 @@ func (r *Store) Processed(id string) (bool, error) {
 		exists = true
 		return nil
 	})
-
 	if err != nil {
 		return false, fmt.Errorf("check if processed: %w", err)
 	}
@@ -88,7 +87,6 @@ func (r *Store) MarkProcessed(id string, meta *models.Service) error {
 	err = r.ndb.Update(func(tx *nutsdb.Tx) error {
 		return tx.Put(bucketDone, []byte(id), data, 0)
 	})
-
 	if err != nil {
 		return fmt.Errorf("mark processed: %w", err)
 	}
@@ -109,7 +107,6 @@ func (r *Store) Get(id string) (*models.Service, error) {
 
 		return json.Unmarshal(entry, &meta)
 	})
-
 	if err != nil {
 		if err == nutsdb.ErrKeyNotFound {
 			return nil, fmt.Errorf("Service not found: %s", id)
@@ -138,7 +135,6 @@ func (r *Store) IDs() ([]string, error) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("get all processed IDs: %w", err)
 	}
@@ -161,7 +157,6 @@ func (r *Store) MarkProcessedBatch(apis []*models.Service) error {
 		}
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("mark processed batch: %w", err)
 	}
@@ -177,7 +172,6 @@ func (r *Store) UpdateLastPoll(ts time.Time) error {
 	err := r.ndb.Update(func(tx *nutsdb.Tx) error {
 		return tx.Put(bucketMetadata, []byte(lastPollKey), data, 0)
 	})
-
 	if err != nil {
 		return fmt.Errorf("set last poll: %w", err)
 	}
@@ -203,7 +197,6 @@ func (r *Store) LastPoll() (time.Time, error) {
 		ts = parsed
 		return nil
 	})
-
 	if err != nil {
 		if err == nutsdb.ErrKeyNotFound || err == nutsdb.ErrBucketNotFound {
 			return time.Time{}, nil // Return zero time if never polled
@@ -237,7 +230,6 @@ func (r *Store) Stats() (map[string]any, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("get stats: %w", err)
 	}
