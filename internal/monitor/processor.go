@@ -86,15 +86,15 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 	}
 
 	// Build set of existing team IDs
-	existing := make(map[string]bool)
+	existing := make(map[string]struct{}, len(meta.ExistingTeams))
 	for _, id := range meta.ExistingTeams {
-		existing[id] = true
+		existing[id] = struct{}{}
 	}
 
 	// Add new teams (avoiding duplicates)
 	var queue []string
 	for _, id := range ids {
-		if !existing[id] {
+		if _, exists := existing[id]; !exists {
 			queue = append(queue, id)
 		}
 	}
