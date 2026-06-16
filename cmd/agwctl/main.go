@@ -93,17 +93,17 @@ func run() error {
 		}
 	}()
 
-	// Initialize access profile manager
-	profMgr := monitor.NewTeamManager(c, log)
+	// Initialize team manager
+	teamMgr := monitor.NewTeamManager(c, log)
 
-	// Refresh access profiles cache
-	log.Info("Fetching access profiles (teams)")
-	if err := profMgr.Refresh(ctx); err != nil {
-		return fmt.Errorf("refresh access profiles: %w", err)
+	// Refresh team cache
+	log.Info("Fetching teams")
+	if err := teamMgr.Refresh(ctx); err != nil {
+		return fmt.Errorf("refresh teams: %w", err)
 	}
 
 	// Resolve team names to IDs
-	teamIDs, err := profMgr.Resolve(cfg.Teams)
+	teamIDs, err := teamMgr.Resolve(cfg.Teams)
 	if err != nil {
 		return fmt.Errorf("resolve team names: %w", err)
 	}
@@ -119,7 +119,7 @@ func run() error {
 	poller := monitor.NewPoller(
 		c,
 		repo,
-		profMgr,
+		teamMgr,
 		proc,
 		cfg.Interval,
 		cfg.PageSize,
@@ -133,7 +133,7 @@ func run() error {
 	if err != nil {
 		log.Warn("Failed to get database stats", slog.Any("error", err))
 	} else {
-		log.Info("Database stats", slog.Any("stats", stats))
+		log.Info("Database stats report", slog.Any("stats", stats))
 	}
 
 	// Start polling

@@ -87,8 +87,8 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 
 	// Build set of existing team IDs
 	existing := make(map[string]bool)
-	for _, teamID := range meta.ExistingTeams {
-		existing[teamID] = true
+	for _, id := range meta.ExistingTeams {
+		existing[id] = true
 	}
 
 	// Add new teams (avoiding duplicates)
@@ -148,8 +148,7 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 
 // GetTeamIDs extracts team IDs from an API JSON document.
 func (p *Processor) GetTeamIDs(doc []byte) ([]string, error) {
-	result := gjson.ParseBytes(doc)
-	teams := result.Get("apiResponse.teams")
+	teams := gjson.ParseBytes(doc).Get("apiResponse.teams")
 
 	var ids []string
 	if teams.Exists() && teams.IsArray() {

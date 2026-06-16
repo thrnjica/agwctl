@@ -108,13 +108,13 @@ func (p *Poller) poll(ctx context.Context) error {
 		slog.Int("total", len(apiIDs)),
 		slog.Int64("duration_ms", time.Since(start).Milliseconds()))
 
-	// Detect new APIs
-	newAPIIDs, err := p.pending(apiIDs)
+	// Look for new APIs
+	ids, err := p.pending(apiIDs)
 	if err != nil {
-		return fmt.Errorf("detect new APIs: %w", err)
+		return fmt.Errorf("detect new services: %w", err)
 	}
 
-	if len(newAPIIDs) == 0 {
+	if len(ids) == 0 {
 		p.log.Info("No new services detected")
 		if err := p.repo.UpdateLastPoll(time.Now()); err != nil {
 			p.log.Warn("Failed to update last poll time", slog.Any("error", err))
@@ -122,16 +122,16 @@ func (p *Poller) poll(ctx context.Context) error {
 		return nil
 	}
 
-	p.log.Info("New services detected", slog.Int("count", len(newAPIIDs)))
+	p.log.Info("New services detected", slog.Int("count", len(ids)))
 
 	// Process new APIs
 	processed := 0
 	failed := 0
 
-	for _, apiID := range newAPIIDs {
-		if err := p.process(ctx, apiID); err != nil {
+	for _, id := range ids {
+		if err := p.process(ctx, id); err != nil {
 			p.log.Error("Failed to process service",
-				slog.String("api_id", apiID),
+				slog.String("api_id", id),
 				slog.Any("error", err))
 			failed++
 		} else {
@@ -155,33 +155,33 @@ func (p *Poller) poll(ctx context.Context) error {
 
 // list fetches all API IDs using pagination.
 func (p *Poller) list(ctx context.Context) ([]string, error) {
-	var allIDs []string
+	var ids []string
 	from := 0
 	page := 1
 
 	for {
-		p.log.Debug("Fetching API page",
+		p.log.Debug("Fetching service page",
 			slog.Int("page", page),
 			slog.Int("from", from),
 			slog.Int("size", p.pageSize))
 
-		resp, err := p.client.ListServices(ctx, from, p.pageSize)
+		res, err := p.client.ListServices(ctx, from, p.pageSize)
 		if err != nil {
-			return nil, fmt.Errorf("list APIs (page %d): %w", page, err)
+			return nil, fmt.Errorf("list services (page %d): %w", page, err)
 		}
 
 		// Extract API IDs
-		for _, item := range resp.APIResponse {
-			if item.API.ID != "" {
-				allIDs = append(allIDs, item.API.ID)
+		for _, item := range res.APIResponse {
+			if id := item.API.ID; id != "" {
+				ids = append(ids, id)
 			}
 		}
 
 		// Check if we got fewer results than requested (last page)
-		if len(resp.APIResponse) < p.pageSize {
+		if len(res.APIResponse) < p.pageSize {
 			p.log.Debug("Reached last page",
 				slog.Int("page", page),
-				slog.Int("results", len(resp.APIResponse)))
+				slog.Int("results", len(res.APIResponse)))
 			break
 		}
 
@@ -189,7 +189,7 @@ func (p *Poller) list(ctx context.Context) ([]string, error) {
 		page++
 	}
 
-	return allIDs, nil
+	return ids, nil
 }
 
 // pending identifies which APIs have not been processed yet.
@@ -211,13 +211,13 @@ func (p *Poller) pending(ids []string) ([]string, error) {
 }
 
 // process processes a single new API by adding teams to it.
-func (p *Poller) process(ctx context.Context, apiID string) error {
-	p.log.Info("Processing new API", slog.String("api_id", apiID))
+func (p *Poller) process(ctx context.Context, id string) error {
+	p.log.Info("Processing new service", slog.String("api_id", id))
 
 	// Fetch full API document
-	api, err := p.client.GetService(ctx, apiID)
+	api, err := p.client.GetService(ctx, id)
 	if err != nil {
-		return fmt.Errorf("get API: %w", err)
+		return fmt.Errorf("get service: %w", err)
 	}
 
 	// Extract metadata
@@ -236,25 +236,25 @@ func (p *Poller) process(ctx context.Context, apiID string) error {
 	// Add teams to API JSON
 	mod, err := p.proc.AddTeamsToAPI(api, p.teamIDs)
 	if err != nil {
-		return fmt.Errorf("add teams to API: %w", err)
+		return fmt.Errorf("add teams to service: %w", err)
 	}
 
 	// Update API (unless dry-run)
 	if !p.dryRun {
-		if err := p.client.UpdateService(ctx, apiID, mod); err != nil {
-			return fmt.Errorf("update API: %w", err)
+		if err := p.client.UpdateService(ctx, id, mod); err != nil {
+			return fmt.Errorf("update service: %w", err)
 		}
-		p.log.Info("API updated successfully",
-			slog.String("api_id", apiID),
+		p.log.Info("Service updated successfully",
+			slog.String("api_id", id),
 			slog.Int("teams_added", len(p.teamIDs)))
 	} else {
-		p.log.Info("DRY RUN: Would update API",
-			slog.String("api_id", apiID),
+		p.log.Info("DRY RUN: Would update service",
+			slog.String("api_id", id),
 			slog.Int("teams_to_add", len(p.teamIDs)))
 	}
 
 	// Mark as processed
-	procAPI := &models.Service{
+	processed := &models.Service{
 		ID:          meta.ID,
 		Name:        meta.Name,
 		Version:     meta.Version,
@@ -263,7 +263,7 @@ func (p *Poller) process(ctx context.Context, apiID string) error {
 		TeamsAdded:  p.teamIDs,
 	}
 
-	if err := p.repo.MarkProcessed(apiID, procAPI); err != nil {
+	if err := p.repo.MarkProcessed(id, processed); err != nil {
 		return fmt.Errorf("mark as processed: %w", err)
 	}
 
