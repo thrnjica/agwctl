@@ -91,11 +91,12 @@ func validate(cfg *Config) error {
 		errs = append(errs, "gateway-url is required")
 	} else {
 		u, err := url.Parse(cfg.GatewayURL)
-		if err != nil {
+		switch {
+		case err != nil:
 			errs = append(errs, fmt.Sprintf("gateway-url is invalid: %v", err))
-		} else if u.Scheme != "http" && u.Scheme != "https" {
+		case u.Scheme != "http" && u.Scheme != "https":
 			errs = append(errs, "gateway-url must use http or https scheme")
-		} else if u.Host == "" {
+		case u.Host == "":
 			errs = append(errs, "gateway-url must include a host")
 		}
 	}
