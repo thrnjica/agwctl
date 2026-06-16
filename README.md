@@ -17,11 +17,11 @@ A Go CLI tool that monitors the IBM webMethods API Gateway for newly created API
 
 ### Prerequisites
 
-- Go 1.26.4 or later
 - Access to IBM webMethods API Gateway 10.11 or 10.15
 - Works on Windows, Linux, and macOS
+- Go 1.26.4 or later (for development only)
 
-### Build from Source
+### Build
 
 ```bash
 git clone https://github.com/thrnjica/agwctl.git
@@ -38,7 +38,7 @@ make install
 
 ## Usage
 
-### Basic Usage
+### Minimal Case
 
 ```bash
 agwctl \
