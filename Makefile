@@ -8,6 +8,8 @@ LDFLAGS := -X main.Version=$(VERSION)
 BINARY := agwctl
 BUILD_DIR := .
 CMD_DIR := ./cmd/agwctl
+FLAGS := GOEXPERIMENT=jsonv2
+PACKAGES := ./...
 
 # Go commands
 GOCMD := go
@@ -22,15 +24,15 @@ GOVET := $(GOCMD) vet
 all: build ## Build the binary
 
 build: ## Build the binary with version injection
-	$(GOBUILD) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY) $(CMD_DIR)
+	@$(FLAGS) $(GOBUILD) -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY) $(CMD_DIR)
 	@echo "Built $(BINARY) version $(VERSION)"
 
 test: ## Run tests
-	$(GOTEST) -v ./...
+	@$(FLAGS) $(GOTEST) -v $(PACKAGES)
 
 test-coverage: ## Run tests with coverage
-	$(GOTEST) -v -coverprofile=coverage.out ./...
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	@$(FLAGS) $(GOTEST) -v -coverprofile=coverage.out $(PACKAGES)
+	@$(FLAGS) $(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
 clean: ## Clean build artifacts
@@ -39,13 +41,13 @@ clean: ## Clean build artifacts
 	rm -rf data
 
 fmt: ## Format code
-	$(GOFMT) ./...
+	@$(FLAGS) $(GOFMT) $(PACKAGES)
 
 vet: ## Run go vet
-	$(GOVET) ./...
+	@$(FLAGS) $(GOVET) $(PACKAGES)
 
 tidy: ## Tidy go modules
-	$(GOMOD) tidy
+	@$(FLAGS) $(GOMOD) tidy
 
 install: build ## Install binary to GOPATH/bin
 	cp $(BUILD_DIR)/$(BINARY) $(GOPATH)/bin/
