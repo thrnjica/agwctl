@@ -93,7 +93,7 @@ func (r *Store) MarkProcessed(id string, meta *models.Service) error {
 		return fmt.Errorf("mark processed: %w", err)
 	}
 
-	r.log.Debug("API marked as processed", slog.String("api_id", id))
+	r.log.Debug("Service marked as processed", slog.String("api_id", id))
 	return nil
 }
 
@@ -112,9 +112,9 @@ func (r *Store) Get(id string) (*models.Service, error) {
 
 	if err != nil {
 		if err == nutsdb.ErrKeyNotFound {
-			return nil, fmt.Errorf("API not found: %s", id)
+			return nil, fmt.Errorf("Service not found: %s", id)
 		}
-		return nil, fmt.Errorf("get processed API: %w", err)
+		return nil, fmt.Errorf("get processed service: %w", err)
 	}
 
 	return &meta, nil
@@ -152,11 +152,11 @@ func (r *Store) MarkProcessedBatch(apis []*models.Service) error {
 		for _, api := range apis {
 			data, err := json.Marshal(api)
 			if err != nil {
-				return fmt.Errorf("marshal API %s: %w", api.ID, err)
+				return fmt.Errorf("marshal service %s: %w", api.ID, err)
 			}
 
 			if err := tx.Put(bucketDone, []byte(api.ID), data, 0); err != nil {
-				return fmt.Errorf("put API %s: %w", api.ID, err)
+				return fmt.Errorf("put service %s: %w", api.ID, err)
 			}
 		}
 		return nil
