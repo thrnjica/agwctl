@@ -1,5 +1,3 @@
-//go:build goexperiment.jsonv2
-
 // Package store provides persistent storage for API processing state using NutsDB.
 package store
 
