@@ -88,7 +88,7 @@ agwctl \
   --gateway-url=https://gateway.dev.example.com:5555/rest/apigateway \
   --username=admin \
   --password=admin \
-  --teams="DevTeam" \
+  --teams="IBM_Support" \
   --dry-run \
   --log-level=debug
 ```
