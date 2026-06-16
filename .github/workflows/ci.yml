@@ -38,7 +38,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.64 # Pinned to avoid unexpected CI breakages
+          version: latest
           args: --timeout=2m
         env:
           GOEXPERIMENT: ${{ env.GOEXPERIMENT }}
