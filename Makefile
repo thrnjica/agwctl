@@ -16,7 +16,6 @@ GOCMD := go
 GOBUILD := $(GOCMD) build
 GOTEST := $(GOCMD) test
 GOMOD := $(GOCMD) mod
-GOFMT := $(GOCMD) fmt
 GOVET := $(GOCMD) vet
 
 .PHONY: all build test clean fmt vet tidy help
@@ -41,7 +40,9 @@ clean: ## Clean build artifacts
 	rm -rf data
 
 fmt: ## Format code
-	@$(FLAGS) $(GOFMT) $(PACKAGES)
+	@$(FLAGS) gofumpt -w -extra .
+
+format: fmt ## Alias for fmt
 
 vet: ## Run go vet
 	@$(FLAGS) $(GOVET) $(PACKAGES)
