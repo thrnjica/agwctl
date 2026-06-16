@@ -1,3 +1,4 @@
+// Package logger initializes structured logger instances.
 package logger
 
 import (
