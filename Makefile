@@ -31,6 +31,9 @@ clean: ## Clean build artifacts
 lint: ## Lint code
 	@$(FLAGS) golangci-lint run $(PACKAGES) --timeout=2m
 
+fix: ## Lint code and fix issues
+	@$(FLAGS) golangci-lint run $(PACKAGES) --timeout=2m --fix
+
 fmt: ## Format code
 	@$(FLAGS) gofumpt -w -extra .
 
