@@ -91,9 +91,9 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func newOptimizedTransport() *http.Transport {
 	return &http.Transport{
 		// Connection pooling
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 100,
-		MaxConnsPerHost:     100,
+		MaxIdleConns:        64,
+		MaxIdleConnsPerHost: 64,
+		MaxConnsPerHost:     64,
 
 		// Timeouts
 		IdleConnTimeout:       90 * time.Second,
