@@ -22,37 +22,39 @@ func NewProcessor(log *slog.Logger) *Processor {
 	}
 }
 
-// ExtractAPIMetadata extracts metadata from an API JSON document using [gjson].
-func (p *Processor) ExtractAPIMetadata(apiJSON []byte) (*models.ServiceIMetadata, error) {
-	result := gjson.ParseBytes(apiJSON)
+// Metadata extracts metadata from an API JSON document using [gjson].
+func (p *Processor) Metadata(doc []byte) (*models.ServiceIMetadata, error) {
+	result := gjson.ParseBytes(doc)
 
 	// Extract from apiResponse.api structure
-	apiObj := result.Get("apiResponse.api")
-	if !apiObj.Exists() {
-		return nil, fmt.Errorf("apiResponse.api not found in JSON")
+	const apiPath = "apiResponse.api"
+
+	api := result.Get(apiPath)
+	if !api.Exists() {
+		return nil, fmt.Errorf("%s not found in JSON", apiPath)
 	}
 
 	meta := &models.ServiceIMetadata{
-		ID:       apiObj.Get("id").String(),
-		Name:     apiObj.Get("apiName").String(),
-		Version:  apiObj.Get("apiVersion").String(),
-		Type:     apiObj.Get("type").String(),
-		IsActive: apiObj.Get("isActive").Bool(),
+		ID:       api.Get("id").String(),
+		Name:     api.Get("apiName").String(),
+		Version:  api.Get("apiVersion").String(),
+		Type:     api.Get("type").String(),
+		IsActive: api.Get("isActive").Bool(),
 	}
 
 	// Extract existing teams
-	teamsArray := result.Get("apiResponse.teams")
-	if teamsArray.Exists() && teamsArray.IsArray() {
-		teamsArray.ForEach(func(_, value gjson.Result) bool {
-			teamID := value.Get("id").String()
-			if teamID != "" {
-				meta.ExistingTeams = append(meta.ExistingTeams, teamID)
+	teams := result.Get("apiResponse.teams")
+	if teams.Exists() && teams.IsArray() {
+		teams.ForEach(func(_, value gjson.Result) bool {
+			id := value.Get("id").String()
+			if id != "" {
+				meta.ExistingTeams = append(meta.ExistingTeams, id)
 			}
 			return true // continue iteration
 		})
 	}
 
-	p.log.Debug("Extracted API metadata",
+	p.log.Debug("Extracted service metadata",
 		slog.String("api_id", meta.ID),
 		slog.String("name", meta.Name),
 		slog.String("version", meta.Version),
@@ -62,9 +64,9 @@ func (p *Processor) ExtractAPIMetadata(apiJSON []byte) (*models.ServiceIMetadata
 }
 
 // AddTeamsToAPI adds teams to an API JSON document, avoiding duplicates.
-func (p *Processor) AddTeamsToAPI(apiJSON []byte, teamIDsToAdd []string) ([]byte, error) {
+func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 	// Extract existing teams
-	meta, err := p.ExtractAPIMetadata(apiJSON)
+	meta, err := p.Metadata(doc)
 	if err != nil {
 		return nil, fmt.Errorf("extract metadata: %w", err)
 	}
@@ -76,34 +78,33 @@ func (p *Processor) AddTeamsToAPI(apiJSON []byte, teamIDsToAdd []string) ([]byte
 	}
 
 	// Add new teams (avoiding duplicates)
-	var toAdd []string
-	for _, teamID := range teamIDsToAdd {
-		if !existing[teamID] {
-			toAdd = append(toAdd, teamID)
+	var queue []string
+	for _, id := range ids {
+		if !existing[id] {
+			queue = append(queue, id)
 		}
 	}
 
-	if len(toAdd) == 0 {
+	if len(queue) == 0 {
 		p.log.Debug("No new teams to add", slog.String("api_id", meta.ID))
-		return apiJSON, nil
+		return doc, nil
 	}
 
 	p.log.Debug("Adding teams to API",
 		slog.String("api_id", meta.ID),
-		slog.Int("new_teams", len(toAdd)),
+		slog.Int("new_teams", len(queue)),
 		slog.Int("existing_teams", len(meta.ExistingTeams)))
 
 	// Get existing teams array from apiResponse
-	result := gjson.ParseBytes(apiJSON)
-	existingTeamsJSON := result.Get("apiResponse.teams")
+	teams := gjson.ParseBytes(doc).Get("apiResponse.teams")
 
-	// Build new teams array
-	var allTeams []any
+	// Populate new teams array
+	var all []any
 
 	// Add existing teams
-	if existingTeamsJSON.Exists() && existingTeamsJSON.IsArray() {
-		existingTeamsJSON.ForEach(func(_, value gjson.Result) bool {
-			allTeams = append(allTeams, map[string]any{
+	if teams.Exists() && teams.IsArray() {
+		teams.ForEach(func(_, value gjson.Result) bool {
+			all = append(all, map[string]any{
 				"id":   value.Get("id").String(),
 				"name": value.Get("name").String(),
 			})
@@ -112,42 +113,42 @@ func (p *Processor) AddTeamsToAPI(apiJSON []byte, teamIDsToAdd []string) ([]byte
 	}
 
 	// Add new teams (with just ID, API Gateway will fill in the name)
-	for _, teamID := range toAdd {
-		allTeams = append(allTeams, map[string]any{
-			"id": teamID,
+	for _, id := range queue {
+		all = append(all, map[string]any{
+			"id": id,
 		})
 	}
 
 	// Update the JSON using [sjson]
-	modJSON, err := sjson.SetBytes(apiJSON, "apiResponse.teams", allTeams)
+	mod, err := sjson.SetBytes(doc, "apiResponse.teams", all)
 	if err != nil {
 		return nil, fmt.Errorf("set teams in JSON: %w", err)
 	}
 
 	p.log.Debug("Teams added to API JSON",
 		slog.String("api_id", meta.ID),
-		slog.Int("total_teams", len(allTeams)))
+		slog.Int("total_teams", len(all)))
 
-	return modJSON, nil
+	return mod, nil
 }
 
 // GetTeamIDs extracts team IDs from an API JSON document.
-func (p *Processor) GetTeamIDs(apiJSON []byte) ([]string, error) {
-	result := gjson.ParseBytes(apiJSON)
-	teamsArray := result.Get("apiResponse.teams")
+func (p *Processor) GetTeamIDs(doc []byte) ([]string, error) {
+	result := gjson.ParseBytes(doc)
+	teams := result.Get("apiResponse.teams")
 
-	var teamIDs []string
-	if teamsArray.Exists() && teamsArray.IsArray() {
-		teamsArray.ForEach(func(_, value gjson.Result) bool {
-			teamID := value.Get("id").String()
-			if teamID != "" {
-				teamIDs = append(teamIDs, teamID)
+	var ids []string
+	if teams.Exists() && teams.IsArray() {
+		teams.ForEach(func(_, value gjson.Result) bool {
+			id := value.Get("id").String()
+			if id != "" {
+				ids = append(ids, id)
 			}
 			return true
 		})
 	}
 
-	return teamIDs, nil
+	return ids, nil
 }
 
 // Made with Bob

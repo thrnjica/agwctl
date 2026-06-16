@@ -27,7 +27,7 @@ func TestExtractAPIMetadata(t *testing.T) {
 		}
 	}`)
 
-	metadata, err := processor.ExtractAPIMetadata(apiJSON)
+	metadata, err := processor.Metadata(apiJSON)
 	if err != nil {
 		t.Fatalf("ExtractAPIMetadata() error = %v", err)
 	}

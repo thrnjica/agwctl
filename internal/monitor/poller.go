@@ -88,10 +88,10 @@ func (p *Poller) poll(ctx context.Context) error {
 	// Fetch all API IDs with pagination
 	apiIDs, err := p.list(ctx)
 	if err != nil {
-		return fmt.Errorf("fetch all API IDs: %w", err)
+		return fmt.Errorf("fetch all service IDs: %w", err)
 	}
 
-	p.log.Info("Fetched all APIs",
+	p.log.Info("Fetched all services",
 		slog.Int("total", len(apiIDs)),
 		slog.Int64("duration_ms", time.Since(start).Milliseconds()))
 
@@ -102,14 +102,14 @@ func (p *Poller) poll(ctx context.Context) error {
 	}
 
 	if len(newAPIIDs) == 0 {
-		p.log.Info("No new APIs detected")
+		p.log.Info("No new services detected")
 		if err := p.repo.UpdateLastPoll(time.Now()); err != nil {
 			p.log.Warn("Failed to update last poll time", slog.Any("error", err))
 		}
 		return nil
 	}
 
-	p.log.Info("New APIs detected", slog.Int("count", len(newAPIIDs)))
+	p.log.Info("New services detected", slog.Int("count", len(newAPIIDs)))
 
 	// Process new APIs
 	processed := 0
@@ -117,7 +117,7 @@ func (p *Poller) poll(ctx context.Context) error {
 
 	for _, apiID := range newAPIIDs {
 		if err := p.process(ctx, apiID); err != nil {
-			p.log.Error("Failed to process API",
+			p.log.Error("Failed to process service",
 				slog.String("api_id", apiID),
 				slog.Any("error", err))
 			failed++
@@ -208,7 +208,7 @@ func (p *Poller) process(ctx context.Context, apiID string) error {
 	}
 
 	// Extract metadata
-	meta, err := p.proc.ExtractAPIMetadata(api)
+	meta, err := p.proc.Metadata(api)
 	if err != nil {
 		return fmt.Errorf("extract metadata: %w", err)
 	}

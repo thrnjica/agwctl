@@ -70,16 +70,20 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 
 	// Execute request
 	start := time.Now()
-	resp, err := c.http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
+
+	status := res.StatusCode
 
 	// Read response
-	res, err := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read response: %w", err)
+		return nil, status, fmt.Errorf("read response: %w", err)
 	}
 
 	dur := time.Since(start)
@@ -88,16 +92,16 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 	c.log.Debug("HTTP response",
 		slog.String("method", method),
 		slog.String("url", url),
-		slog.Int("status", resp.StatusCode),
-		slog.Int("body_size", len(res)),
+		slog.Int("status", status),
+		slog.Int("body_size", len(data)),
 		slog.Int64("duration_ms", dur.Milliseconds()))
 
 	// Handle non-2xx status codes
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return res, resp.StatusCode, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(res))
+	if status < 200 || status >= 300 {
+		return data, status, fmt.Errorf("HTTP %d: %s", status, string(data))
 	}
 
-	return res, resp.StatusCode, nil
+	return data, status, nil
 }
 
 // ListServices fetches a page of APIs from the gateway.

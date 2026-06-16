@@ -28,13 +28,13 @@ func NewTeamManager(c *client.Client, log *slog.Logger) *TeamManager {
 	}
 }
 
-// Refresh fetches all access profiles and updates the cache.
+// Refresh fetches all teams and updates the cache.
 func (t *TeamManager) Refresh(ctx context.Context) error {
-	t.log.Info("Refreshing access profiles cache")
+	t.log.Info("Refreshing team cache")
 
-	resp, err := t.client.ListTeams(ctx)
+	res, err := t.client.ListTeams(ctx)
 	if err != nil {
-		return fmt.Errorf("list access profiles: %w", err)
+		return fmt.Errorf("list teams: %w", err)
 	}
 
 	t.mu.Lock()
@@ -42,14 +42,14 @@ func (t *TeamManager) Refresh(ctx context.Context) error {
 
 	// Clear and rebuild cache
 	t.cache = make(map[string]string)
-	for _, profile := range resp.AccessProfiles {
+	for _, profile := range res.AccessProfiles {
 		t.cache[profile.Name] = profile.ID
-		t.log.Debug("Cached access profile",
+		t.log.Debug("Cached team",
 			slog.String("name", profile.Name),
 			slog.String("id", profile.ID))
 	}
 
-	t.log.Info("Access profiles cache refreshed",
+	t.log.Info("Team cache refreshed",
 		slog.Int("count", len(t.cache)))
 
 	return nil
