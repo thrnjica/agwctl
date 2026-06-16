@@ -155,7 +155,9 @@ func (p *Poller) poll(ctx context.Context) error {
 
 // list fetches all API IDs using pagination.
 func (p *Poller) list(ctx context.Context) ([]string, error) {
-	var ids []string
+	// Pre-allocate slice with estimated capacity to reduce allocations
+	// Estimate: assume at least 1000 APIs, will grow if needed
+	ids := make([]string, 0, 1000)
 	from := 0
 	page := 1
 
