@@ -1,0 +1,45 @@
+{
+  "editor.defaultFormatter": null,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "files.associations": {
+    "LICENSE": "plaintext"
+  },
+  "files.encoding": "utf8",
+  "[go]": {
+    "editor.rulers": [
+      80
+    ],
+    "editor.defaultFormatter": "golang.go",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    }
+  },
+  "[markdown]": {
+    "editor.rulers": [
+      100
+    ]
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "go.lintTool": "golangci-lint-v2",
+  "go.formatTool": "gofumpt",
+  "go.toolsEnvVars": {
+    "GOEXPERIMENT": "jsonv2"
+  },
+  "go.toolsManagement.autoUpdate": true,
+  "search.exclude": {
+    "**/coverage.out": true,
+    "**/data": true,
+    "**/dist": true,
+    "**/go.sum": true,
+    "**/vendor": true
+  }
+}
