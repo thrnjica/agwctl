@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"sync"
 
 	"github.com/thrnjica/agwctl/internal/client"
@@ -84,9 +85,7 @@ func (apm *AccessProfileManager) GetAllTeams() map[string]string {
 
 	// Return a copy to avoid concurrent modification
 	result := make(map[string]string, len(apm.cache))
-	for name, id := range apm.cache {
-		result[name] = id
-	}
+	maps.Copy(result, apm.cache)
 
 	return result
 }
