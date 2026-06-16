@@ -62,7 +62,7 @@ agwctl \
 | `--interval` | int | 60 | Polling interval in seconds |
 | `--page-size` | int | 100 | Number of APIs to fetch per page |
 | `--rate-limit` | int | 10 | Max requests per second |
-| `--db-path` | string | `.agwctl-db` | Path to NutsDB database directory |
+| `--db-path` | string | `data` | Path to NutsDB database directory |
 | `--log-level` | string | `info` | Log level: debug, info, warn, error |
 | `--dry-run` | bool | false | Simulate without making changes |
 
@@ -158,7 +158,7 @@ agwctl \
 
 The tool uses NutsDB (embedded key-value database) to track processed APIs:
 
-- **Location**: `.agwctl-db/` (configurable)
+- **Location**: `data/` (configurable)
 - **Buckets**:
   - `processed_apis`: Stores API ID → metadata mappings
   - `metadata`: Stores last poll timestamp
@@ -239,7 +239,7 @@ Error: open database: corrupted
 
 **Solution**: Delete database directory and restart:
 ```bash
-rm -rf .agwctl-db
+rm -rf data
 agwctl [flags...]
 ```
 

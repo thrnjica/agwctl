@@ -21,6 +21,7 @@ UserInterfaceState.xcuserstate
 .go-version
 /agwctl
 /coverage.out
+/data/
 /dist/
 /public/
 /vendor/

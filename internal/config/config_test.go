@@ -171,7 +171,7 @@ func TestConfigString(t *testing.T) {
 		Interval:   60 * time.Second,
 		PageSize:   100,
 		RateLimit:  10,
-		DBPath:     ".agwctl-db",
+		DBPath:     "data",
 		LogLevel:   "info",
 		DryRun:     false,
 	}

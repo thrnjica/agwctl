@@ -143,8 +143,8 @@ kill $(cat agwctl.pid)
 ### Successful Startup
 
 ```json
-{"time":"2026-06-16T17:00:00Z","level":"INFO","msg":"Starting API Gateway Automator","gateway_url":"https://gateway.example.com:5555/rest/apigateway","username":"admin","teams":["DevTeam"],"interval":"60s","page_size":100,"rate_limit":10,"db_path":".agwctl-db","dry_run":false}
-{"time":"2026-06-16T17:00:00Z","level":"INFO","msg":"Database opened","path":".agwctl-db"}
+{"time":"2026-06-16T17:00:00Z","level":"INFO","msg":"Starting API Gateway Automator","gateway_url":"https://gateway.example.com:5555/rest/apigateway","username":"admin","teams":["DevTeam"],"interval":"60s","page_size":100,"rate_limit":10,"db_path":"data","dry_run":false}
+{"time":"2026-06-16T17:00:00Z","level":"INFO","msg":"Database opened","path":"data"}
 {"time":"2026-06-16T17:00:01Z","level":"INFO","msg":"Refreshing access profiles cache"}
 {"time":"2026-06-16T17:00:02Z","level":"INFO","msg":"Access profiles cache refreshed","count":5}
 {"time":"2026-06-16T17:00:02Z","level":"INFO","msg":"Team names resolved","teams":["DevTeam"],"team_ids":["abc-123"]}
@@ -210,7 +210,7 @@ Error: open database: corrupted
 **Solution:** Delete and recreate the database:
 
 ```bash
-rm -rf .agwctl-db
+rm -rf data
 ./agwctl [flags...]
 ```
 
@@ -293,7 +293,7 @@ ps aux | grep agwctl
 top -p $(pgrep agwctl)
 
 # Check database size
-du -sh .agwctl-db
+du -sh data
 ```
 
 ## Next Steps

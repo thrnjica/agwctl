@@ -99,7 +99,7 @@ api-gateway-automator/
 --password        string   Basic auth password (required)
 --teams           string   Comma-separated team names to add (required)
 --interval        int      Polling interval in seconds (default: 60)
---db-path         string   Path to NutsDB database directory (default: .agwctl-db)
+--db-path         string   Path to NutsDB database directory (default: data)
 --page-size       int      Number of APIs to fetch per page (default: 100)
 --rate-limit      int      Max requests per second (default: 10)
 --log-level       string   Log level: debug, info, warn, error (default: info)

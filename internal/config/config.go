@@ -44,7 +44,7 @@ func LoadFromFlags() (*Config, error) {
 	intervalSec := flag.Int("interval", 60, "Polling interval in seconds")
 	flag.IntVar(&cfg.PageSize, "page-size", 100, "Number of APIs to fetch per page")
 	flag.IntVar(&cfg.RateLimit, "rate-limit", 10, "Max requests per second")
-	flag.StringVar(&cfg.DBPath, "db-path", ".agwctl-db", "Path to NutsDB database directory")
+	flag.StringVar(&cfg.DBPath, "db-path", "data", "Path to NutsDB database directory")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "Log level: debug, info, warn, error")
 	flag.BoolVar(&cfg.DryRun, "dry-run", false, "Simulate without making changes")
 

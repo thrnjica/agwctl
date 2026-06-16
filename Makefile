@@ -36,7 +36,7 @@ test-coverage: ## Run tests with coverage
 clean: ## Clean build artifacts
 	rm -f $(BUILD_DIR)/$(BINARY)
 	rm -f coverage.out coverage.html
-	rm -rf .agwctl-db
+	rm -rf data
 
 fmt: ## Format code
 	$(GOFMT) ./...
