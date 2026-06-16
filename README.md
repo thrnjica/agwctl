@@ -1,42 +1,39 @@
 # API Gateway Automator (agwctl)
 
-A Go CLI tool that monitors the IBM webMethods API Gateway 10.15 for newly created APIs and automatically adds specified teams to them.
+A Go CLI tool that monitors the IBM webMethods API Gateway for newly created APIs and automatically adds specified teams to them.
 
 ## Features
 
 - **Automatic Team Assignment**: Monitors for new APIs and automatically adds configured teams
-- **Pagination Support**: Efficiently handles large deployments (2000-3000+ APIs)
-- **Rate Limiting**: Prevents 429 errors with configurable request rate limiting
+- **Pagination Support**: Efficiently handles large deployments hosting thousands of APIs
+- **Rate Limiting**: Prevents request throttling errors with configurable request rate limiting
 - **Persistent State**: Uses embedded NutsDB for fast, reliable state tracking
-- **Efficient JSON Processing**: Uses gjson/sjson for minimal overhead
-- **Structured Logging**: JSON-formatted logs with configurable levels
+- **Efficient JSON Processing**: Uses JSON Path expressions for minimal parsing overhead
+- **Structured Logging**: Prints JSON-formatted logs with configurable levels
 - **Graceful Shutdown**: Handles SIGINT/SIGTERM signals cleanly
-- **Dry-Run Mode**: Test without making actual changes
+- **Dry-Run Mode**: Supports test runs without making actual changes
 
 ## Installation
 
 ### Prerequisites
 
 - Go 1.26.4 or later
-- Access to IBM webMethods API Gateway 10.15
+- Access to IBM webMethods API Gateway 10.11 or 10.15
+- Works on Windows, Linux, and macOS
 
 ### Build from Source
 
 ```bash
 git clone https://github.com/thrnjica/agwctl.git
 cd agwctl
-go mod download
-go build -o agwctl ./cmd/agwctl
+make build
 ```
 
 ### Install
 
 ```bash
 # Install to $GOPATH/bin
-go install ./cmd/agwctl
-
-# Or copy the binary to your PATH
-sudo cp agwctl /usr/local/bin/
+make install
 ```
 
 ## Usage
@@ -129,30 +126,6 @@ agwctl \
    - Completes current poll cycle
    - Saves state and closes database
    - Exits cleanly
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         CLI Entry Point                      │
-│                      (cmd/agwctl/main.go)                    │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Command Handler                          │
-│  - Parse flags                                               │
-│  - Initialize components                                     │
-│  - Start monitoring loop                                     │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-        ┌────────────┼────────────┐
-        ▼            ▼            ▼
-┌──────────┐  ┌──────────┐  ┌──────────────┐
-│   API    │  │  NutsDB  │  │ AccessProfile│
-│  Client  │  │ Storage  │  │   Manager    │
-└──────────┘  └──────────┘  └──────────────┘
-```
 
 ## State Management
 
@@ -285,49 +258,78 @@ api-gateway-automator/
 ├── internal/
 │   ├── client/
 │   │   ├── client.go            # HTTP client
-│   │   └── ratelimit.go         # Rate limiter
+│   │   ├── ratelimit.go         # Rate limiter
+│   │   └── transport.go         # HTTP transport configuration
 │   ├── config/
-│   │   └── config.go            # Configuration
+│   │   ├── config.go            # Configuration
+│   │   └── config_test.go       # Configuration tests
+│   ├── logger/
+│   │   └── logger.go            # Structured logging
 │   ├── models/
 │   │   └── models.go            # Data models
 │   ├── monitor/
-│   │   ├── accessprofile.go     # Team management
 │   │   ├── poller.go            # Polling logic
-│   │   └── processor.go         # JSON processing
-│   └── storage/
-│       └── repository.go        # NutsDB wrapper
+│   │   ├── processor.go         # JSON processing
+│   │   ├── processor_test.go    # Processor tests
+│   │   └── team.go              # Team management
+│   └── store/
+│       └── store.go             # NutsDB wrapper
+├── docs/
+│   ├── DEPENDENCIES.md          # Dependency justification
+│   ├── DESIGN.md                # Architecture documentation
+│   └── QUICKSTART.md            # Quick start guide
 ├── spec/
 │   ├── apis.openapi.json        # API spec
 │   └── users.openapi.json       # User management spec
-├── go.mod
-├── DESIGN.md                    # Architecture documentation
-├── DEPENDENCIES.md              # Dependency justification
+├── .editorconfig                # Editor configuration
+├── .gitattributes               # Git attributes
+├── .gitignore                   # Git ignore rules
+├── .golangci.yml                # Linter configuration
+├── go.mod                       # Go module definition
+├── go.sum                       # Go module checksums
+├── lefthook.yml                 # Git hooks configuration
+├── LICENSE                      # License file
+├── Makefile                     # Build automation
 └── README.md                    # This file
 ```
 
 ### Running Tests
 
 ```bash
-go test ./...
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-coverage
 ```
 
 ### Building
 
 ```bash
-go build -o agwctl ./cmd/agwctl
+# Build the binary
+make build
+
+# Clean build artifacts
+make clean
 ```
 
 ### Code Quality
 
 ```bash
 # Run linter
-golangci-lint run
+make lint
+
+# Run linter and fix issues
+make fix
 
 # Format code
-go fmt ./...
+make fmt
 
-# Vet code
-go vet ./...
+# Run go vet
+make vet
+
+# Tidy go modules
+make tidy
 ```
 
 ## Contributing
@@ -338,27 +340,3 @@ go vet ./...
 4. Add tests
 5. Run linters and tests
 6. Submit a pull request
-
-## License
-
-[Add your license here]
-
-## Support
-
-For issues and questions:
-- GitHub Issues: [repository URL]
-- Documentation: See DESIGN.md for architecture details
-- API Gateway Docs: [IBM webMethods documentation]
-
-## Changelog
-
-### v1.0.0 (2026-06-16)
-
-- Initial release
-- Pagination support for large API collections
-- Rate limiting to prevent 429 errors
-- NutsDB for efficient state management
-- gjson/sjson for fast JSON processing
-- Structured logging with slog
-- Dry-run mode
-- Graceful shutdown
