@@ -98,12 +98,12 @@ func (p *Processor) AddTeamsToAPI(apiJSON []byte, teamIDsToAdd []string) ([]byte
 	existingTeamsJSON := result.Get("apiResponse.teams")
 
 	// Build new teams array
-	var allTeams []interface{}
+	var allTeams []any
 
 	// Add existing teams
 	if existingTeamsJSON.Exists() && existingTeamsJSON.IsArray() {
 		existingTeamsJSON.ForEach(func(_, value gjson.Result) bool {
-			allTeams = append(allTeams, map[string]interface{}{
+			allTeams = append(allTeams, map[string]any{
 				"id":   value.Get("id").String(),
 				"name": value.Get("name").String(),
 			})
@@ -113,7 +113,7 @@ func (p *Processor) AddTeamsToAPI(apiJSON []byte, teamIDsToAdd []string) ([]byte
 
 	// Add new teams (with just ID, API Gateway will fill in the name)
 	for _, teamID := range toAdd {
-		allTeams = append(allTeams, map[string]interface{}{
+		allTeams = append(allTeams, map[string]any{
 			"id": teamID,
 		})
 	}

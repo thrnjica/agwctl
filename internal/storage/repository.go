@@ -1,5 +1,4 @@
-// Package store provides persistent storage for API processing state using NutsDB.
-package store
+package storage
 
 import (
 	"encoding/json"
@@ -22,12 +21,12 @@ const (
 
 // Repository provides data access to the NutsDB database.
 type Repository struct {
-	db  *nutsdb.DB
-	log *slog.Logger
+	db     *nutsdb.DB
+	logger *slog.Logger
 }
 
 // NewRepository creates a new repository with the specified database path.
-func NewRepository(dbPath string, log *slog.Logger) (*Repository, error) {
+func NewRepository(dbPath string, logger *slog.Logger) (*Repository, error) {
 	opt := nutsdb.DefaultOptions
 	opt.Dir = dbPath
 	opt.EntryIdxMode = nutsdb.HintKeyValAndRAMIdxMode
@@ -37,11 +36,11 @@ func NewRepository(dbPath string, log *slog.Logger) (*Repository, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	log.Info("Database opened", slog.String("path", dbPath))
+	logger.Info("Database opened", "path", dbPath)
 
 	return &Repository{
-		db:  db,
-		log: log,
+		db:     db,
+		logger: logger,
 	}, nil
 }
 
@@ -50,7 +49,7 @@ func (r *Repository) Close() error {
 	if err := r.db.Close(); err != nil {
 		return fmt.Errorf("close database: %w", err)
 	}
-	r.log.Info("Database closed")
+	r.logger.Info("Database closed")
 	return nil
 }
 
@@ -79,8 +78,8 @@ func (r *Repository) IsProcessed(apiID string) (bool, error) {
 }
 
 // MarkProcessed marks an API as processed with metadata.
-func (r *Repository) MarkProcessed(apiID string, meta *models.ProcessedAPI) error {
-	data, err := json.Marshal(meta)
+func (r *Repository) MarkProcessed(apiID string, metadata *models.ProcessedAPI) error {
+	data, err := json.Marshal(metadata)
 	if err != nil {
 		return fmt.Errorf("marshal metadata: %w", err)
 	}
@@ -93,13 +92,13 @@ func (r *Repository) MarkProcessed(apiID string, meta *models.ProcessedAPI) erro
 		return fmt.Errorf("mark processed: %w", err)
 	}
 
-	r.log.Debug("API marked as processed", slog.String("api_id", apiID))
+	r.logger.Debug("API marked as processed", "api_id", apiID)
 	return nil
 }
 
 // GetProcessedAPI retrieves metadata for a processed API.
 func (r *Repository) GetProcessedAPI(apiID string) (*models.ProcessedAPI, error) {
-	var meta models.ProcessedAPI
+	var metadata models.ProcessedAPI
 
 	err := r.db.View(func(tx *nutsdb.Tx) error {
 		entry, err := tx.Get(processedAPIsBucket, []byte(apiID))
@@ -107,7 +106,7 @@ func (r *Repository) GetProcessedAPI(apiID string) (*models.ProcessedAPI, error)
 			return err
 		}
 
-		return json.Unmarshal(entry, &meta)
+		return json.Unmarshal(entry, &metadata)
 	})
 
 	if err != nil {
@@ -117,7 +116,7 @@ func (r *Repository) GetProcessedAPI(apiID string) (*models.ProcessedAPI, error)
 		return nil, fmt.Errorf("get processed API: %w", err)
 	}
 
-	return &meta, nil
+	return &metadata, nil
 }
 
 // GetAllProcessedIDs retrieves all processed API IDs.
@@ -166,13 +165,13 @@ func (r *Repository) MarkProcessedBatch(apis []*models.ProcessedAPI) error {
 		return fmt.Errorf("mark processed batch: %w", err)
 	}
 
-	r.log.Debug("Batch marked as processed", slog.Int("count", len(apis)))
+	r.logger.Debug("Batch marked as processed", "count", len(apis))
 	return nil
 }
 
 // SetLastPoll stores the timestamp of the last successful poll.
-func (r *Repository) SetLastPoll(ts time.Time) error {
-	data := []byte(ts.Format(time.RFC3339))
+func (r *Repository) SetLastPoll(timestamp time.Time) error {
+	data := []byte(timestamp.Format(time.RFC3339))
 
 	err := r.db.Update(func(tx *nutsdb.Tx) error {
 		return tx.Put(metadataBucket, []byte(lastPollKey), data, 0)
@@ -187,7 +186,7 @@ func (r *Repository) SetLastPoll(ts time.Time) error {
 
 // GetLastPoll retrieves the timestamp of the last successful poll.
 func (r *Repository) GetLastPoll() (time.Time, error) {
-	var ts time.Time
+	var timestamp time.Time
 
 	err := r.db.View(func(tx *nutsdb.Tx) error {
 		entry, err := tx.Get(metadataBucket, []byte(lastPollKey))
@@ -200,7 +199,7 @@ func (r *Repository) GetLastPoll() (time.Time, error) {
 			return fmt.Errorf("parse timestamp: %w", err)
 		}
 
-		ts = parsed
+		timestamp = parsed
 		return nil
 	})
 
@@ -211,7 +210,7 @@ func (r *Repository) GetLastPoll() (time.Time, error) {
 		return time.Time{}, fmt.Errorf("get last poll: %w", err)
 	}
 
-	return ts, nil
+	return timestamp, nil
 }
 
 // GetStats returns statistics about the database.

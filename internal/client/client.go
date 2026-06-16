@@ -16,7 +16,7 @@ import (
 )
 
 // unmarshalJSON is a helper to unmarshal JSON with better error messages.
-func unmarshalJSON(data []byte, v interface{}) error {
+func unmarshalJSON(data []byte, v any) error {
 	if err := json.Unmarshal(data, v); err != nil {
 		return fmt.Errorf("unmarshal JSON: %w", err)
 	}
