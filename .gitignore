@@ -19,6 +19,7 @@ UserInterfaceState.xcuserstate
 *.vsix
 
 .go-version
+/agwctl
 /coverage.out
 /dist/
 /public/
