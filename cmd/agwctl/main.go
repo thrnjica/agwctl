@@ -10,6 +10,7 @@ import (
 
 	"github.com/thrnjica/agwctl/internal/client"
 	"github.com/thrnjica/agwctl/internal/config"
+	"github.com/thrnjica/agwctl/internal/logger"
 	"github.com/thrnjica/agwctl/internal/monitor"
 	"github.com/thrnjica/agwctl/internal/store"
 )
@@ -32,7 +33,7 @@ func run() error {
 	}
 
 	// Setup logger
-	log := setupLogger(cfg.LogLevel)
+	log := logger.Setup(cfg.LogLevel)
 	log.Info("Starting API Gateway Automator",
 		slog.String("gateway_url", cfg.GatewayURL),
 		slog.String("username", cfg.Username),
@@ -128,31 +129,6 @@ func run() error {
 
 	log.Info("Shutdown complete")
 	return nil
-}
-
-// setupLogger creates a structured logger with the specified log level.
-func setupLogger(level string) *slog.Logger {
-	var logLevel slog.Level
-
-	switch level {
-	case "debug":
-		logLevel = slog.LevelDebug
-	case "info":
-		logLevel = slog.LevelInfo
-	case "warn":
-		logLevel = slog.LevelWarn
-	case "error":
-		logLevel = slog.LevelError
-	default:
-		logLevel = slog.LevelInfo
-	}
-
-	opts := &slog.HandlerOptions{
-		Level: logLevel,
-	}
-
-	handler := slog.NewJSONHandler(os.Stdout, opts)
-	return slog.New(handler)
 }
 
 // Made with Bob
