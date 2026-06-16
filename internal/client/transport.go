@@ -24,8 +24,8 @@ import (
 
 // rateLimitTransport wraps an [http.RoundTripper] with rate limiting.
 type rateLimitTransport struct {
-	base    http.RoundTripper
-	limiter *rate.Limiter
+	base http.RoundTripper
+	lmtr *rate.Limiter
 }
 
 // newRateLimitTransport creates a new rate-limited transport.
@@ -34,15 +34,15 @@ func newRateLimitTransport(base http.RoundTripper, rps int) *rateLimitTransport 
 		base = http.DefaultTransport
 	}
 	return &rateLimitTransport{
-		base:    base,
-		limiter: rate.NewLimiter(rate.Limit(rps), rps),
+		base: base,
+		lmtr: rate.NewLimiter(rate.Limit(rps), rps),
 	}
 }
 
 // RoundTrip implements [http.RoundTripper] with rate limiting.
 func (t *rateLimitTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Wait for rate limiter
-	if err := t.limiter.Wait(req.Context()); err != nil {
+	if err := t.lmtr.Wait(req.Context()); err != nil {
 		return nil, fmt.Errorf("rate limit wait: %w", err)
 	}
 	return t.base.RoundTrip(req)
