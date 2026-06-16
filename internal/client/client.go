@@ -57,8 +57,13 @@ func New(baseURL, username, password, version string, rps int, log *slog.Logger)
 
 // call performs an HTTP request.
 func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]byte, int, error) {
-	// Build URL
-	url := c.baseURL + path
+	// Build URL properly to handle trailing slashes
+	base, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, 0, fmt.Errorf("parse base URL: %w", err)
+	}
+	base.Path = path
+	fullURL := base.String()
 
 	// Create request
 	var r io.Reader
@@ -66,7 +71,7 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 		r = bytes.NewReader(body)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, r)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, r)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create request: %w", err)
 	}
@@ -78,7 +83,7 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 	// Log request
 	c.log.Debug("HTTP request",
 		slog.String("method", method),
-		slog.String("url", url),
+		slog.String("url", fullURL),
 		slog.Int("body_size", len(body)))
 
 	// Execute request
@@ -104,7 +109,7 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 	// Log response
 	c.log.Debug("HTTP response",
 		slog.String("method", method),
-		slog.String("url", url),
+		slog.String("url", fullURL),
 		slog.Int("status", status),
 		slog.Int("body_size", len(data)),
 		slog.Int64("duration_ms", dur.Milliseconds()))
