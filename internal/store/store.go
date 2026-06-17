@@ -77,7 +77,8 @@ func (r *Store) Processed(id string) (bool, error) {
 	err := r.ndb.View(func(tx *nutsdb.Tx) error {
 		_, err := tx.Get(bucketDone, []byte(id))
 		if err != nil {
-			if errors.Is(err, nutsdb.ErrKeyNotFound) || errors.Is(err, nutsdb.ErrBucketNotFound) {
+			if errors.Is(err, nutsdb.ErrKeyNotFound) ||
+				errors.Is(err, nutsdb.ErrBucketNotFound) {
 				exists = false
 				return nil
 			}
@@ -94,7 +95,7 @@ func (r *Store) Processed(id string) (bool, error) {
 }
 
 // MarkProcessed marks an API as processed with metadata.
-func (r *Store) MarkProcessed(id string, meta *models.Service) error {
+func (r *Store) MarkProcessed(id string, meta *models.API) error {
 	data, err := json.Marshal(meta)
 	if err != nil {
 		return fmt.Errorf("marshal metadata: %w", err)
@@ -107,27 +108,26 @@ func (r *Store) MarkProcessed(id string, meta *models.Service) error {
 		return fmt.Errorf("mark processed: %w", err)
 	}
 
-	r.log.Debug("Service marked as processed", slog.String("api_id", id))
+	r.log.Debug("API marked as processed", slog.String("api_id", id))
 	return nil
 }
 
 // Get retrieves metadata for a processed API.
-func (r *Store) Get(id string) (*models.Service, error) {
-	var meta models.Service
+func (r *Store) Get(id string) (*models.API, error) {
+	var meta models.API
 
 	err := r.ndb.View(func(tx *nutsdb.Tx) error {
 		entry, err := tx.Get(bucketDone, []byte(id))
 		if err != nil {
 			return err
 		}
-
 		return json.Unmarshal(entry, &meta)
 	})
 	if err != nil {
 		if errors.Is(err, nutsdb.ErrKeyNotFound) {
-			return nil, fmt.Errorf("service not found: %s", id)
+			return nil, fmt.Errorf("unknown API: %s", id)
 		}
-		return nil, fmt.Errorf("get processed service: %w", err)
+		return nil, fmt.Errorf("get processed API: %w", err)
 	}
 
 	return &meta, nil
@@ -159,16 +159,16 @@ func (r *Store) IDs() ([]string, error) {
 }
 
 // MarkProcessedBatch marks multiple APIs as processed in a single transaction.
-func (r *Store) MarkProcessedBatch(apis []*models.Service) error {
+func (r *Store) MarkProcessedBatch(apis []*models.API) error {
 	err := r.ndb.Update(func(tx *nutsdb.Tx) error {
 		for _, api := range apis {
 			data, err := json.Marshal(api)
 			if err != nil {
-				return fmt.Errorf("marshal service %s: %w", api.ID, err)
+				return fmt.Errorf("marshal API %s: %w", api.ID, err)
 			}
 
 			if err := tx.Put(bucketDone, []byte(api.ID), data, 0); err != nil {
-				return fmt.Errorf("put service %s: %w", api.ID, err)
+				return fmt.Errorf("put API %s: %w", api.ID, err)
 			}
 		}
 		return nil
@@ -214,7 +214,8 @@ func (r *Store) LastPoll() (time.Time, error) {
 		return nil
 	})
 	if err != nil {
-		if errors.Is(err, nutsdb.ErrKeyNotFound) || errors.Is(err, nutsdb.ErrBucketNotFound) {
+		if errors.Is(err, nutsdb.ErrKeyNotFound) ||
+			errors.Is(err, nutsdb.ErrBucketNotFound) {
 			return time.Time{}, nil // Return zero time if never polled
 		}
 		return time.Time{}, fmt.Errorf("get last poll: %w", err)

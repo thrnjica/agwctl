@@ -51,9 +51,9 @@ func (t *TeamManager) Refresh(ctx context.Context) error {
 	}
 
 	// Build new cache outside of lock to minimize lock duration
-	newCache := make(map[string]string, len(res.Teams))
+	cache := make(map[string]string, len(res.Teams))
 	for _, team := range res.Teams {
-		newCache[team.Name] = team.ID
+		cache[team.Name] = team.ID
 		t.log.Debug("Cached team",
 			slog.String("name", team.Name),
 			slog.String("id", team.ID))
@@ -61,11 +61,11 @@ func (t *TeamManager) Refresh(ctx context.Context) error {
 
 	// Atomically swap the cache
 	t.mu.Lock()
-	t.cache = newCache
+	t.cache = cache
 	t.mu.Unlock()
 
 	t.log.Info("Team cache refreshed",
-		slog.Int("count", len(newCache)))
+		slog.Int("count", len(cache)))
 
 	return nil
 }

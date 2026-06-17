@@ -58,11 +58,11 @@ func TestExtractAPIMetadata(t *testing.T) {
 	if metadata.Type != "REST" {
 		t.Errorf("Type = %v, want REST", metadata.Type)
 	}
-	if !metadata.IsActive {
-		t.Errorf("IsActive = %v, want true", metadata.IsActive)
+	if !metadata.Active {
+		t.Errorf("IsActive = %v, want true", metadata.Active)
 	}
-	if len(metadata.ExistingTeams) != 2 {
-		t.Errorf("len(ExistingTeams) = %v, want 2", len(metadata.ExistingTeams))
+	if len(metadata.Teams) != 2 {
+		t.Errorf("len(ExistingTeams) = %v, want 2", len(metadata.Teams))
 	}
 }
 

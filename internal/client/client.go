@@ -38,15 +38,22 @@ func unmarshal(data []byte, v any) error {
 
 // Client provides HTTP communication with the API Gateway REST API.
 type Client struct {
-	baseURL string
-	http    *http.Client
-	log     *slog.Logger
+	url  string
+	http *http.Client
+	log  *slog.Logger
 }
 
 // New creates a new API Gateway client with optimized transport.
-func New(baseURL, username, password, version string, rps int, log *slog.Logger) *Client {
+func New(
+	url,
+	username,
+	password,
+	version string,
+	rps int,
+	log *slog.Logger,
+) *Client {
 	return &Client{
-		baseURL: baseURL,
+		url: url,
 		http: &http.Client{
 			Timeout:   30 * time.Second,
 			Transport: newTransport(username, password, version, rps),
@@ -56,9 +63,13 @@ func New(baseURL, username, password, version string, rps int, log *slog.Logger)
 }
 
 // call performs an HTTP request.
-func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]byte, int, error) {
+func (c *Client) call(
+	ctx context.Context,
+	method, path string,
+	body []byte,
+) ([]byte, int, error) {
 	// Build URL properly to handle trailing slashes
-	base, err := url.Parse(c.baseURL)
+	base, err := url.Parse(c.url)
 	if err != nil {
 		return nil, 0, fmt.Errorf("parse base URL: %w", err)
 	}
@@ -122,8 +133,11 @@ func (c *Client) call(ctx context.Context, method, path string, body []byte) ([]
 	return data, status, nil
 }
 
-// ListServices fetches a page of APIs from the gateway.
-func (c *Client) ListServices(ctx context.Context, from, size int) (*models.ServiceListResponse, error) {
+// ListAPIs fetches a page of APIs from the gateway.
+func (c *Client) ListAPIs(
+	ctx context.Context,
+	from, size int,
+) (*models.APIListResponse, error) {
 	path := fmt.Sprintf("/apis?from=%d&size=%d", from, size)
 
 	res, _, err := c.call(ctx, http.MethodGet, path, nil)
@@ -131,7 +145,7 @@ func (c *Client) ListServices(ctx context.Context, from, size int) (*models.Serv
 		return nil, fmt.Errorf("list APIs: %w", err)
 	}
 
-	var model models.ServiceListResponse
+	var model models.APIListResponse
 	if err := unmarshal(res, &model); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
@@ -139,32 +153,38 @@ func (c *Client) ListServices(ctx context.Context, from, size int) (*models.Serv
 	return &model, nil
 }
 
-// GetService fetches the full API document as raw JSON.
-func (c *Client) GetService(ctx context.Context, id string) ([]byte, error) {
+// GetAPI fetches the full API document as raw JSON.
+func (c *Client) GetAPI(ctx context.Context, id string) ([]byte, error) {
 	path := fmt.Sprintf("/apis/%s", url.PathEscape(id))
 
 	res, _, err := c.call(ctx, http.MethodGet, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("get service: %w", err)
+		return nil, fmt.Errorf("get API: %w", err)
 	}
 
 	return res, nil
 }
 
-// UpdateService updates an API with the provided JSON document.
-func (c *Client) UpdateService(ctx context.Context, id string, payload []byte) error {
+// UpdateAPI updates an API with the provided JSON document.
+func (c *Client) UpdateAPI(
+	ctx context.Context,
+	id string,
+	payload []byte,
+) error {
 	path := fmt.Sprintf("/apis/%s", url.PathEscape(id))
 
 	_, _, err := c.call(ctx, http.MethodPut, path, payload)
 	if err != nil {
-		return fmt.Errorf("update service: %w", err)
+		return fmt.Errorf("update api: %w", err)
 	}
 
 	return nil
 }
 
 // ListTeams fetches all teams from the gateway.
-func (c *Client) ListTeams(ctx context.Context) (*models.TeamListResponse, error) {
+func (c *Client) ListTeams(
+	ctx context.Context,
+) (*models.TeamListResponse, error) {
 	path := "/accessProfiles"
 
 	res, _, err := c.call(ctx, http.MethodGet, path, nil)

@@ -24,7 +24,8 @@ import (
 	"github.com/thrnjica/agwctl/internal/models"
 )
 
-// Processor handles JSON manipulation for API documents using [gjson] and [sjson].
+// Processor handles JSON manipulation for API documents using JSON Path
+// expressions.
 type Processor struct {
 	log *slog.Logger
 }
@@ -37,7 +38,7 @@ func NewProcessor(log *slog.Logger) *Processor {
 }
 
 // Metadata extracts metadata from an API JSON document using [gjson].
-func (p *Processor) Metadata(doc []byte) (*models.ServiceIMetadata, error) {
+func (p *Processor) Metadata(doc []byte) (*models.APIMetadata, error) {
 	result := gjson.ParseBytes(doc)
 
 	// Extract from apiResponse.api structure
@@ -48,12 +49,12 @@ func (p *Processor) Metadata(doc []byte) (*models.ServiceIMetadata, error) {
 		return nil, fmt.Errorf("%s not found in JSON", apiPath)
 	}
 
-	meta := &models.ServiceIMetadata{
-		ID:       api.Get("id").String(),
-		Name:     api.Get("apiName").String(),
-		Version:  api.Get("apiVersion").String(),
-		Type:     api.Get("type").String(),
-		IsActive: api.Get("isActive").Bool(),
+	meta := &models.APIMetadata{
+		ID:      api.Get("id").String(),
+		Name:    api.Get("apiName").String(),
+		Version: api.Get("apiVersion").String(),
+		Type:    api.Get("type").String(),
+		Active:  api.Get("isActive").Bool(),
 	}
 
 	// Extract existing teams
@@ -62,17 +63,17 @@ func (p *Processor) Metadata(doc []byte) (*models.ServiceIMetadata, error) {
 		teams.ForEach(func(_, value gjson.Result) bool {
 			id := value.Get("id").String()
 			if id != "" {
-				meta.ExistingTeams = append(meta.ExistingTeams, id)
+				meta.Teams = append(meta.Teams, id)
 			}
 			return true // continue iteration
 		})
 	}
 
-	p.log.Debug("Extracted service metadata",
+	p.log.Debug("Extracted API metadata",
 		slog.String("api_id", meta.ID),
 		slog.String("name", meta.Name),
 		slog.String("version", meta.Version),
-		slog.Int("existing_teams", len(meta.ExistingTeams)))
+		slog.Int("existing_teams", len(meta.Teams)))
 
 	return meta, nil
 }
@@ -86,8 +87,8 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 	}
 
 	// Build set of existing team IDs
-	existing := make(map[string]struct{}, len(meta.ExistingTeams))
-	for _, id := range meta.ExistingTeams {
+	existing := make(map[string]struct{}, len(meta.Teams))
+	for _, id := range meta.Teams {
 		existing[id] = struct{}{}
 	}
 
@@ -107,7 +108,7 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 	p.log.Debug("Adding teams to API",
 		slog.String("api_id", meta.ID),
 		slog.Int("new_teams", len(queue)),
-		slog.Int("existing_teams", len(meta.ExistingTeams)))
+		slog.Int("existing_teams", len(meta.Teams)))
 
 	// Get existing teams array from apiResponse
 	teams := gjson.ParseBytes(doc).Get("apiResponse.teams")

@@ -21,7 +21,7 @@ type Team struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
-	GroupIDs    []string `json:"groupIds"`
+	Groups      []string `json:"groupIds"`
 }
 
 // TeamListResponse represents the response from GET /accessProfiles.
@@ -29,44 +29,44 @@ type TeamListResponse struct {
 	Teams []Team `json:"accessProfiles"`
 }
 
-// ServiceListResponse represents the response from GET /apis.
-type ServiceListResponse struct {
-	APIResponse []ServiceResponseItem `json:"apiResponse"`
+// APIListResponse represents the response from GET /apis.
+type APIListResponse struct {
+	Items []APIResponseItem `json:"apiResponse"`
 }
 
-// ServiceResponseItem represents a single API in the list response.
-type ServiceResponseItem struct {
-	API            ServiceInfo `json:"api"`
-	ResponseStatus string      `json:"responseStatus"`
+// APIResponseItem represents a single API in the list response.
+type APIResponseItem struct {
+	API    APIInfo `json:"api"`
+	Status string  `json:"responseStatus"`
 }
 
-// ServiceInfo contains basic API information from the list endpoint.
-type ServiceInfo struct {
-	ID         string `json:"id"`
-	APIName    string `json:"apiName"`
-	APIVersion string `json:"apiVersion"`
-	Type       string `json:"type"`
-	IsActive   bool   `json:"isActive"`
+// APIInfo contains basic API information from the list endpoint.
+type APIInfo struct {
+	ID      string `json:"id"`
+	Name    string `json:"apiName"`
+	Version string `json:"apiVersion"`
+	Type    string `json:"type"`
+	Active  bool   `json:"isActive"`
 }
 
-// Service represents metadata about a processed API stored in the database.
-type Service struct {
+// API represents metadata about a processed API stored in the database.
+type API struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Version     string    `json:"version"`
 	Type        string    `json:"type"`
 	ProcessedAt time.Time `json:"processedAt"`
-	TeamsAdded  []string  `json:"teamsAdded"`
+	Teams       []string  `json:"teams"`
 }
 
-// ServiceIMetadata contains extracted metadata from an API document.
-type ServiceIMetadata struct {
-	ID            string
-	Name          string
-	Version       string
-	Type          string
-	IsActive      bool
-	ExistingTeams []string
+// APIMetadata contains extracted metadata from an API document.
+type APIMetadata struct {
+	ID      string
+	Name    string
+	Version string
+	Type    string
+	Active  bool
+	Teams   []string
 }
 
 // Made with Bob

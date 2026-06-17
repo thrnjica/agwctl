@@ -68,7 +68,10 @@ func run() error {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		sig := <-sigChan
-		log.Info("Received signal, shutting down gracefully", slog.Any("signal", sig))
+		log.Info(
+			"Received signal, shutting down gracefully",
+			slog.Any("signal", sig),
+		)
 		cancel()
 	}()
 
@@ -116,7 +119,7 @@ func run() error {
 	proc := monitor.NewProcessor(log)
 
 	// Initialize poller
-	poller := monitor.NewPoller(
+	poll := monitor.NewPoller(
 		c,
 		repo,
 		teamMgr,
@@ -138,7 +141,7 @@ func run() error {
 
 	// Start polling
 	log.Info("Starting polling loop")
-	if err := poller.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := poll.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("poller error: %w", err)
 	}
 
