@@ -94,7 +94,7 @@ func (r *Store) Processed(id string) (bool, error) {
 	return exists, nil
 }
 
-// MarkProcessed marks an API as processed with metadata.
+// MarkProcessed flags an API as processed with metadata.
 func (r *Store) MarkProcessed(id string, meta *models.API) error {
 	data, err := json.Marshal(meta)
 	if err != nil {
@@ -105,7 +105,7 @@ func (r *Store) MarkProcessed(id string, meta *models.API) error {
 		return tx.Put(bucketDone, []byte(id), data, 0)
 	})
 	if err != nil {
-		return fmt.Errorf("mark processed: %w", err)
+		return fmt.Errorf("update processed apis: %w", err)
 	}
 
 	r.log.Debug("API marked as processed", slog.String("api_id", id))
@@ -125,9 +125,9 @@ func (r *Store) Get(id string) (*models.API, error) {
 	})
 	if err != nil {
 		if errors.Is(err, nutsdb.ErrKeyNotFound) {
-			return nil, fmt.Errorf("unknown API: %s", id)
+			return nil, fmt.Errorf("unknown api: %s", id)
 		}
-		return nil, fmt.Errorf("get processed API: %w", err)
+		return nil, fmt.Errorf("get processed api: %w", err)
 	}
 
 	return &meta, nil

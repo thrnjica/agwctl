@@ -46,7 +46,7 @@ func (p *Processor) Metadata(doc []byte) (*models.APIMetadata, error) {
 
 	api := result.Get(apiPath)
 	if !api.Exists() {
-		return nil, fmt.Errorf("%s not found in JSON", apiPath)
+		return nil, fmt.Errorf("%s not found in json", apiPath)
 	}
 
 	meta := &models.APIMetadata{
@@ -137,10 +137,10 @@ func (p *Processor) AddTeamsToAPI(doc []byte, ids []string) ([]byte, error) {
 	// Update the JSON using [sjson]
 	mod, err := sjson.SetBytes(doc, "apiResponse.teams", all)
 	if err != nil {
-		return nil, fmt.Errorf("set teams in JSON: %w", err)
+		return nil, fmt.Errorf("set teams in json: %w", err)
 	}
 
-	p.log.Debug("Teams added to API JSON",
+	p.log.Debug("Teams added to API object",
 		slog.String("api_id", meta.ID),
 		slog.Int("total_teams", len(all)))
 
