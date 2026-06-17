@@ -88,7 +88,7 @@ func run() error {
 	// Initialize store repository
 	repo, err := store.New(cfg.DBPath, log)
 	if err != nil {
-		return fmt.Errorf("initialize repository: %w", err)
+		return fmt.Errorf("init repository: %w", err)
 	}
 	defer func() {
 		if err := repo.Close(); err != nil {
