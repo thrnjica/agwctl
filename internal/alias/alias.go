@@ -162,6 +162,7 @@ func (m *Manager) ListWithoutIPs(ctx context.Context) ([]models.AliasInfo, error
 			Hostname:    hostname,
 			IPAddresses: nil,
 			Resolved:    false,
+			Error:       "skipped", // Marker for skipped DNS resolution
 		}
 		results = append(results, info)
 	}

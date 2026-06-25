@@ -35,6 +35,8 @@ func FormatTable(w io.Writer, aliases []models.AliasInfo) error {
 		ips := "<DNS lookup failed>"
 		if alias.Resolved {
 			ips = strings.Join(alias.IPAddresses, ", ")
+		} else if alias.Error == "skipped" {
+			ips = "<skipped>"
 		} else if alias.Error != "" {
 			ips = fmt.Sprintf("<error: %s>", alias.Error)
 		}
