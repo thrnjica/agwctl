@@ -119,6 +119,56 @@ func (m *Manager) ListWithIPs(ctx context.Context) ([]models.AliasInfo, error) {
 	return results, nil
 }
 
+// ListWithoutIPs fetches all endpoint aliases without DNS resolution.
+// This is faster and useful when only alias information is needed.
+func (m *Manager) ListWithoutIPs(ctx context.Context) ([]models.AliasInfo, error) {
+	// Fetch all aliases
+	allAliases, err := m.client.ListAliases(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list aliases: %w", err)
+	}
+
+	m.log.Info("Fetched aliases from gateway",
+		slog.Int("total", len(allAliases)))
+
+	// Filter endpoint aliases only
+	var endpointAliases []models.EndpointAlias
+	for _, alias := range allAliases {
+		if strings.ToLower(alias.Type) == "endpoint" {
+			endpointAliases = append(endpointAliases, alias)
+		}
+	}
+
+	m.log.Info("Filtered endpoint aliases (DNS resolution skipped)",
+		slog.Int("total", len(allAliases)),
+		slog.Int("endpoints", len(endpointAliases)))
+
+	// Build results without DNS resolution
+	var results []models.AliasInfo
+	for _, alias := range endpointAliases {
+		hostname, err := extractHostname(alias.EndpointURI)
+		if err != nil {
+			// Fallback to full URI if hostname extraction fails
+			hostname = alias.EndpointURI
+			m.log.Warn("Failed to extract hostname, using full URI",
+				slog.String("alias", alias.Name),
+				slog.String("url", alias.EndpointURI),
+				slog.Any("error", err))
+		}
+
+		info := models.AliasInfo{
+			Name:        alias.Name,
+			EndpointURL: alias.EndpointURI,
+			Hostname:    hostname,
+			IPAddresses: nil,
+			Resolved:    false,
+		}
+		results = append(results, info)
+	}
+
+	return results, nil
+}
+
 // extractHostname extracts the hostname from a URL.
 func extractHostname(rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)

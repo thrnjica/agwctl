@@ -24,6 +24,7 @@ import (
 	"github.com/thrnjica/agwctl/internal/alias"
 	"github.com/thrnjica/agwctl/internal/client"
 	"github.com/thrnjica/agwctl/internal/logger"
+	"github.com/thrnjica/agwctl/internal/models"
 )
 
 // aliasesCommand handles the 'aliases list' subcommand.
@@ -37,6 +38,7 @@ func aliasesCommand(args []string) error {
 	password := fs.String("password", "", "Basic auth password (required)")
 	format := fs.String("format", "table", "Output format: table or json")
 	timeout := fs.Int("timeout", 60, "DNS lookup timeout in seconds")
+	skipDNS := fs.Bool("skip-dns-resolution", false, "Skip DNS resolution of hostnames")
 	rateLimit := fs.Int("rate-limit", 10, "Max requests per second")
 	logLevel := fs.String("log-level", "info", "Log level: debug, info, warn, error")
 
@@ -61,6 +63,7 @@ func aliasesCommand(args []string) error {
 		"gateway_url", *gatewayURL,
 		"format", *format,
 		"timeout", *timeout,
+		"skip_dns", *skipDNS,
 		"rate_limit", *rateLimit)
 
 	// Create client
@@ -69,9 +72,18 @@ func aliasesCommand(args []string) error {
 	// Create alias manager
 	mgr := alias.NewManager(c, time.Duration(*timeout)*time.Second, log)
 
-	// Fetch aliases with IPs
+	// Fetch aliases with or without DNS resolution
 	ctx := context.Background()
-	aliases, err := mgr.ListWithIPs(ctx)
+	var aliases []models.AliasInfo
+	var err error
+
+	if *skipDNS {
+		log.Info("DNS resolution skipped")
+		aliases, err = mgr.ListWithoutIPs(ctx)
+	} else {
+		aliases, err = mgr.ListWithIPs(ctx)
+	}
+
 	if err != nil {
 		return fmt.Errorf("list aliases: %w", err)
 	}
