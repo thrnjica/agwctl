@@ -22,20 +22,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thrnjica/agwctl/internal/client"
 	"github.com/thrnjica/agwctl/internal/models"
 )
 
+// AliasClient defines the interface for fetching aliases from the API Gateway.
+type AliasClient interface {
+	ListAliases(ctx context.Context) ([]models.EndpointAlias, error)
+}
+
 // Manager orchestrates alias listing and DNS resolution.
 type Manager struct {
-	client   *client.Client
+	client   AliasClient
 	resolver *Resolver
 	log      *slog.Logger
 }
 
 // NewManager creates a new alias manager with the specified client, DNS timeout, and logger.
 func NewManager(
-	client *client.Client,
+	client AliasClient,
 	timeout time.Duration,
 	log *slog.Logger,
 ) *Manager {
