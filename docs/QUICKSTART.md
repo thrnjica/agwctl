@@ -1,12 +1,12 @@
 # Quick Start Guide
 
-This guide will help you get started with the API Gateway Automator CLI in minutes.
+This guide will help you get started with agwctl (API Gateway Control) in minutes.
 
 ## Prerequisites
 
 - Go 1.26.4 or later installed
 - Access to IBM webMethods API Gateway 10.15
-- Valid credentials with "Manage APIs" privilege
+- Valid credentials with appropriate privileges
 
 ## Installation
 
@@ -33,7 +33,14 @@ go build -o agwctl ./cmd/agwctl
 go install github.com/thrnjica/agwctl/cmd/agwctl@latest
 ```
 
-## Basic Usage
+## Available Commands
+
+agwctl provides two main commands:
+
+1. **monitor** (default) - Continuously monitors for new APIs and adds teams
+2. **aliases list** - Lists endpoint aliases with optional DNS resolution
+
+## Monitor Command (Default)
 
 ### 1. Test Connection (Dry Run)
 
@@ -92,6 +99,94 @@ nohup ./agwctl \
 echo $! > agwctl.pid
 
 # To stop later
+## Aliases Command
+
+The `aliases list` command provides visibility into your Gateway's endpoint configuration.
+
+### 1. List All Aliases with DNS Resolution
+
+```bash
+./agwctl aliases list \
+  --gateway-url=https://your-gateway.example.com:5555/rest/apigateway \
+  --username=your-username \
+  --password=your-password
+```
+
+**Output:**
+```
+ALIAS NAME                     ENDPOINT URL                                       IP ADDRESSES                            
+----------------------------------------------------------------------------------------------------------------------------
+production-backend             https://api.prod.example.com/v1                    203.0.113.10, 203.0.113.11             
+staging-backend                https://api.staging.example.com/v1                 198.51.100.5                           
+```
+
+### 2. Quick List Without DNS (Fast)
+
+```bash
+./agwctl aliases list \
+  --gateway-url=https://your-gateway.example.com:5555/rest/apigateway \
+  --username=your-username \
+  --password=your-password \
+  --skip-dns-resolution
+```
+
+**Output:**
+```
+ALIAS NAME                     ENDPOINT URL                                       IP ADDRESSES                            
+----------------------------------------------------------------------------------------------------------------------------
+production-backend             https://api.prod.example.com/v1                    <skipped>                              
+staging-backend                https://api.staging.example.com/v1                 <skipped>                              
+```
+
+### 3. JSON Output for Automation
+
+```bash
+./agwctl aliases list \
+  --gateway-url=https://your-gateway.example.com:5555/rest/apigateway \
+  --username=your-username \
+  --password=your-password \
+  --format=json
+```
+
+**Output:**
+```json
+{
+  "aliases": [
+    {
+      "name": "production-backend",
+      "endpointUrl": "https://api.prod.example.com/v1",
+      "hostname": "api.prod.example.com",
+      "ipAddresses": ["203.0.113.10", "203.0.113.11"],
+      "resolved": true
+    }
+  ]
+}
+```
+
+### 4. Network Diagnostics
+
+Find aliases with DNS resolution failures:
+
+```bash
+./agwctl aliases list \
+  --gateway-url=https://your-gateway.example.com:5555/rest/apigateway \
+  --username=your-username \
+  --password=your-password \
+  --format=json | jq -r '.aliases[] | select(.resolved == false) | .name'
+```
+
+### 5. Extract All Backend IPs
+
+```bash
+./agwctl aliases list \
+  --gateway-url=https://your-gateway.example.com:5555/rest/apigateway \
+  --username=your-username \
+  --password=your-password \
+  --format=json | jq -r '.aliases[].ipAddresses[]' | sort -u
+```
+
+**See [docs/commands/ALIASES.md](commands/ALIASES.md) for complete documentation.**
+
 kill $(cat agwctl.pid)
 ```
 
