@@ -33,6 +33,12 @@ type EndpointAlias struct {
 	OptimizationTechnique string `json:"optimizationTechnique,omitempty"` // None, MTOM, SwA
 }
 
+// AliasResponseModel represents the response from GET /alias endpoint.
+// Based on spec/alias.openapi.json - AliasResponseModel definition.
+type AliasResponseModel struct {
+	Alias []EndpointAlias `json:"alias"`
+}
+
 // AliasInfo contains alias information with resolved IP addresses.
 // This is our output format for the CLI command.
 type AliasInfo struct {

@@ -214,12 +214,12 @@ func (c *Client) ListAliases(
 		return nil, fmt.Errorf("list aliases: %w", err)
 	}
 
-	var aliases []models.EndpointAlias
-	if err := unmarshal(res, &aliases); err != nil {
+	var response models.AliasResponseModel
+	if err := unmarshal(res, &response); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
-	return aliases, nil
+	return response.Alias, nil
 }
 
 // GetAlias fetches a single alias by ID.
