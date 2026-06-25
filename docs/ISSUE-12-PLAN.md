@@ -331,6 +331,51 @@ func (m *Manager) ListWithIPs(ctx context.Context) ([]models.AliasInfo, error) {
     return results, nil
 }
 
+// ListWithoutIPs fetches all endpoint aliases without DNS resolution.
+// This is faster and useful when only alias information is needed.
+func (m *Manager) ListWithoutIPs(ctx context.Context) ([]models.AliasInfo, error) {
+    // Fetch all aliases
+    allAliases, err := m.client.ListAliases(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("list aliases: %w", err)
+    }
+
+    m.log.Info("Fetched aliases from gateway",
+        slog.Int("total", len(allAliases)))
+
+    // Filter endpoint aliases only
+    var endpointAliases []models.EndpointAlias
+    for _, alias := range allAliases {
+        if strings.ToLower(alias.Type) == "endpoint" {
+            endpointAliases = append(endpointAliases, alias)
+        }
+    }
+
+    m.log.Info("Filtered endpoint aliases",
+        slog.Int("total", len(allAliases)),
+        slog.Int("endpoints", len(endpointAliases)))
+
+    // Build results without DNS resolution
+    var results []models.AliasInfo
+    for _, alias := range endpointAliases {
+        hostname, err := extractHostname(alias.EndpointURI)
+        if err != nil {
+            hostname = alias.EndpointURI // Fallback to full URI
+        }
+
+        info := models.AliasInfo{
+            Name:        alias.Name,
+            EndpointURL: alias.EndpointURI,
+            Hostname:    hostname,
+            IPAddresses: nil,
+            Resolved:    false,
+        }
+        results = append(results, info)
+    }
+
+    return results, nil
+}
+
 // extractHostname extracts the hostname from a URL.
 func extractHostname(rawURL string) (string, error) {
     u, err := url.Parse(rawURL)
@@ -490,6 +535,7 @@ func aliasesCommand(args []string) error {
     password := fs.String("password", "", "Basic auth password (required)")
     format := fs.String("format", "table", "Output format: table or json")
     timeout := fs.Int("timeout", 60, "DNS lookup timeout in seconds")
+    skipDNS := fs.Bool("skip-dns-resolution", false, "Skip DNS resolution of hostnames")
     rateLimit := fs.Int("rate-limit", 10, "Max requests per second")
     logLevel := fs.String("log-level", "info", "Log level: debug, info, warn, error")
 
@@ -517,7 +563,16 @@ func aliasesCommand(args []string) error {
 
     // Fetch aliases with IPs
     ctx := context.Background()
-    aliases, err := mgr.ListWithIPs(ctx)
+    var aliases []models.AliasInfo
+    var err error
+    
+    if *skipDNS {
+        // Skip DNS resolution - only list aliases
+        aliases, err = mgr.ListWithoutIPs(ctx)
+    } else {
+        // Perform DNS resolution
+        aliases, err = mgr.ListWithIPs(ctx)
+    }
     if err != nil {
         return fmt.Errorf("list aliases: %w", err)
     }
@@ -632,6 +687,16 @@ agwctl aliases list \
   --username=admin \
   --password=secret \
   --format=json
+```
+
+Skip DNS resolution (faster, only shows hostnames):
+
+```bash
+agwctl aliases list \
+  --gateway-url=https://gateway.example.com:5555/rest/apigateway \
+  --username=admin \
+  --password=secret \
+  --skip-dns-resolution
 ```
 ```
 
