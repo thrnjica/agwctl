@@ -826,6 +826,621 @@ agwctl aliases list \
 
 ---
 
-**Erstellt:** 2026-06-25  
-**Branch:** `feature/12-endpoint-alias-listing`  
+## Unit-Test Implementierungsplan
+
+### Übersicht
+
+Basierend auf den bestehenden Test-Patterns im Projekt (`config_test.go`, `processor_test.go`) werden strukturierte Unit-Tests für alle Alias-Komponenten erstellt.
+
+### Test-Stil des Projekts
+
+**Erkannte Patterns:**
+- ✅ Table-driven Tests mit `t.Run()` und `t.Parallel()`
+- ✅ Klare Test-Namen im Format "action description"
+- ✅ Struct-basierte Test-Cases mit `name`, Input, `wantErr`/Expected
+- ✅ Copyright-Header in allen Dateien
+- ✅ Verwendung von `slog` für Logging in Tests
+- ✅ Fokus auf Edge-Cases und Fehlerszenarien
+
+### 1. Formatter Tests (`internal/alias/formatter_test.go`)
+
+**Priorität:** HOCH (einfachst, keine Dependencies)
+
+**Test-Cases:**
+```go
+func TestFormatTable(t *testing.T) {
+    tests := []struct {
+        name    string
+        aliases []models.AliasInfo
+        want    string // Expected output pattern
+    }{
+        {
+            name: "successful aliases with IPs",
+            aliases: []models.AliasInfo{
+                {
+                    Name: "TestAlias1",
+                    EndpointURL: "https://example.com",
+                    Hostname: "example.com",
+                    IPAddresses: []string{"93.184.216.34"},
+                    Resolved: true,
+                },
+            },
+        },
+        {
+            name: "failed DNS lookup",
+            aliases: []models.AliasInfo{
+                {
+                    Name: "TestAlias2",
+                    EndpointURL: "https://invalid.local",
+                    Hostname: "invalid.local",
+                    Resolved: false,
+                    Error: "lookup failed",
+                },
+            },
+        },
+        {
+            name: "skipped DNS resolution",
+            aliases: []models.AliasInfo{
+                {
+                    Name: "TestAlias3",
+                    EndpointURL: "https://skipped.com",
+                    Hostname: "skipped.com",
+                    Resolved: false,
+                    Error: "skipped",
+                },
+            },
+        },
+        {
+            name: "empty list",
+            aliases: []models.AliasInfo{},
+        },
+        {
+            name: "long strings truncation",
+            aliases: []models.AliasInfo{
+                {
+                    Name: "VeryLongAliasNameThatExceedsTheMaximumLength",
+                    EndpointURL: "https://very-long-url-that-exceeds-maximum-length.example.com/path",
+                    Hostname: "very-long-url.example.com",
+                    IPAddresses: []string{"1.2.3.4", "5.6.7.8", "9.10.11.12"},
+                    Resolved: true,
+                },
+            },
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            var buf bytes.Buffer
+            err := FormatTable(&buf, tt.aliases)
+            if err != nil {
+                t.Errorf("FormatTable() error = %v", err)
+            }
+            // Validate output contains expected patterns
+        })
+    }
+}
+
+func TestFormatJSON(t *testing.T) {
+    tests := []struct {
+        name    string
+        aliases []models.AliasInfo
+        wantErr bool
+    }{
+        {
+            name: "valid JSON output",
+            aliases: []models.AliasInfo{
+                {
+                    Name: "TestAlias",
+                    EndpointURL: "https://example.com",
+                    Hostname: "example.com",
+                    IPAddresses: []string{"93.184.216.34"},
+                    Resolved: true,
+                },
+            },
+            wantErr: false,
+        },
+        {
+            name: "empty list",
+            aliases: []models.AliasInfo{},
+            wantErr: false,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            var buf bytes.Buffer
+            err := FormatJSON(&buf, tt.aliases)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("FormatJSON() error = %v, wantErr %v", err, tt.wantErr)
+            }
+            
+            // Validate JSON is valid
+            if !tt.wantErr {
+                var result map[string]interface{}
+                if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+                    t.Errorf("Invalid JSON output: %v", err)
+                }
+            }
+        })
+    }
+}
+
+func TestTruncate(t *testing.T) {
+    tests := []struct {
+        name   string
+        input  string
+        maxLen int
+        want   string
+    }{
+        {
+            name: "short string",
+            input: "short",
+            maxLen: 10,
+            want: "short",
+        },
+        {
+            name: "exact length",
+            input: "exactly10c",
+            maxLen: 10,
+            want: "exactly10c",
+        },
+        {
+            name: "long string",
+            input: "this is a very long string",
+            maxLen: 10,
+            want: "this is...",
+        },
+        {
+            name: "empty string",
+            input: "",
+            maxLen: 10,
+            want: "",
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            got := truncate(tt.input, tt.maxLen)
+            if got != tt.want {
+                t.Errorf("truncate() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+```
+
+**Akzeptanzkriterien:**
+- ✅ Alle Ausgabe-Formate getestet
+- ✅ Edge-Cases (leere Liste, lange Strings) abgedeckt
+- ✅ JSON-Validität geprüft
+- ✅ Truncation-Logik verifiziert
+
+---
+
+### 2. DNS-Resolver Tests (`internal/alias/resolver_test.go`)
+
+**Priorität:** MITTEL (echte DNS-Calls, Timeouts)
+
+**Test-Cases:**
+```go
+func TestNewResolver(t *testing.T) {
+    t.Parallel()
+    timeout := 30 * time.Second
+    resolver := NewResolver(timeout)
+    
+    if resolver == nil {
+        t.Error("NewResolver() returned nil")
+    }
+    if resolver.timeout != timeout {
+        t.Errorf("timeout = %v, want %v", resolver.timeout, timeout)
+    }
+}
+
+func TestResolveHostname(t *testing.T) {
+    t.Parallel()
+    resolver := NewResolver(60 * time.Second)
+    
+    tests := []struct {
+        name     string
+        hostname string
+        wantErr  bool
+        wantIPs  bool // Should return at least one IP
+    }{
+        {
+            name: "valid hostname - localhost",
+            hostname: "localhost",
+            wantErr: false,
+            wantIPs: true,
+        },
+        {
+            name: "valid hostname - google.com",
+            hostname: "google.com",
+            wantErr: false,
+            wantIPs: true,
+        },
+        {
+            name: "invalid hostname",
+            hostname: "this-domain-definitely-does-not-exist-12345.invalid",
+            wantErr: true,
+            wantIPs: false,
+        },
+        {
+            name: "empty hostname",
+            hostname: "",
+            wantErr: true,
+            wantIPs: false,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Note: Not parallel due to DNS lookups
+            ips, err := resolver.ResolveHostname(tt.hostname)
+            
+            if (err != nil) != tt.wantErr {
+                t.Errorf("ResolveHostname() error = %v, wantErr %v", err, tt.wantErr)
+            }
+            
+            if tt.wantIPs && len(ips) == 0 {
+                t.Error("ResolveHostname() returned no IPs")
+            }
+            
+            if !tt.wantIPs && len(ips) > 0 {
+                t.Errorf("ResolveHostname() returned IPs when none expected: %v", ips)
+            }
+        })
+    }
+}
+
+func TestResolveHostnameTimeout(t *testing.T) {
+    t.Parallel()
+    // Very short timeout to test timeout behavior
+    resolver := NewResolver(1 * time.Nanosecond)
+    
+    // This should timeout
+    _, err := resolver.ResolveHostname("google.com")
+    if err == nil {
+        t.Error("Expected timeout error, got nil")
+    }
+}
+```
+
+**Akzeptanzkriterien:**
+- ✅ Erfolgreiche DNS-Auflösung getestet (localhost, bekannte Domains)
+- ✅ Fehlerbehandlung für ungültige Hostnames
+- ✅ Timeout-Verhalten verifiziert
+- ✅ IPv4/IPv6 Unterstützung implizit getestet
+
+---
+
+### 3. Alias-Manager Tests (`internal/alias/alias_test.go`)
+
+**Priorität:** HOCH (komplex, benötigt Mocks)
+
+**Mock-Client Implementierung:**
+```go
+// mockClient implements a mock for testing
+type mockClient struct {
+    aliases []models.EndpointAlias
+    err     error
+}
+
+func (m *mockClient) ListAliases(ctx context.Context) ([]models.EndpointAlias, error) {
+    return m.aliases, m.err
+}
+
+// mockResolver implements a mock DNS resolver
+type mockResolver struct {
+    ips map[string][]string // hostname -> IPs
+    err map[string]error    // hostname -> error
+}
+
+func (m *mockResolver) ResolveHostname(hostname string) ([]string, error) {
+    if err, ok := m.err[hostname]; ok {
+        return nil, err
+    }
+    if ips, ok := m.ips[hostname]; ok {
+        return ips, nil
+    }
+    return nil, fmt.Errorf("unknown hostname: %s", hostname)
+}
+```
+
+**Test-Cases:**
+```go
+func TestListWithIPs(t *testing.T) {
+    t.Parallel()
+    logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+    
+    tests := []struct {
+        name        string
+        aliases     []models.EndpointAlias
+        clientErr   error
+        wantErr     bool
+        wantCount   int
+        wantResolved int
+    }{
+        {
+            name: "endpoint aliases with successful DNS",
+            aliases: []models.EndpointAlias{
+                {
+                    ID: "1",
+                    Name: "EndpointAlias1",
+                    Type: "endpoint",
+                    EndpointURI: "https://example.com",
+                },
+            },
+            wantErr: false,
+            wantCount: 1,
+            wantResolved: 1,
+        },
+        {
+            name: "mixed alias types - filtering",
+            aliases: []models.EndpointAlias{
+                {
+                    ID: "1",
+                    Name: "EndpointAlias",
+                    Type: "endpoint",
+                    EndpointURI: "https://example.com",
+                },
+                {
+                    ID: "2",
+                    Name: "SimpleAlias",
+                    Type: "simple",
+                },
+            },
+            wantErr: false,
+            wantCount: 1, // Only endpoint alias
+            wantResolved: 1,
+        },
+        {
+            name: "client error",
+            aliases: nil,
+            clientErr: fmt.Errorf("connection failed"),
+            wantErr: true,
+        },
+        {
+            name: "uppercase type filtering",
+            aliases: []models.EndpointAlias{
+                {
+                    ID: "1",
+                    Name: "EndpointAlias",
+                    Type: "ENDPOINT", // Uppercase
+                    EndpointURI: "https://example.com",
+                },
+            },
+            wantErr: false,
+            wantCount: 1,
+            wantResolved: 1,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            // Setup mock client
+            mockClient := &mockClient{
+                aliases: tt.aliases,
+                err: tt.clientErr,
+            }
+            
+            // Create manager with mock
+            mgr := &Manager{
+                client: mockClient,
+                resolver: NewResolver(60 * time.Second),
+                log: logger,
+            }
+            
+            results, err := mgr.ListWithIPs(context.Background())
+            
+            if (err != nil) != tt.wantErr {
+                t.Errorf("ListWithIPs() error = %v, wantErr %v", err, tt.wantErr)
+            }
+            
+            if !tt.wantErr {
+                if len(results) != tt.wantCount {
+                    t.Errorf("len(results) = %v, want %v", len(results), tt.wantCount)
+                }
+                
+                resolved := 0
+                for _, r := range results {
+                    if r.Resolved {
+                        resolved++
+                    }
+                }
+                
+                if resolved != tt.wantResolved {
+                    t.Errorf("resolved count = %v, want %v", resolved, tt.wantResolved)
+                }
+            }
+        })
+    }
+}
+
+func TestListWithoutIPs(t *testing.T) {
+    t.Parallel()
+    logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+    
+    tests := []struct {
+        name      string
+        aliases   []models.EndpointAlias
+        wantCount int
+    }{
+        {
+            name: "endpoint aliases without DNS",
+            aliases: []models.EndpointAlias{
+                {
+                    ID: "1",
+                    Name: "EndpointAlias1",
+                    Type: "endpoint",
+                    EndpointURI: "https://example.com",
+                },
+            },
+            wantCount: 1,
+        },
+        {
+            name: "verify skipped marker",
+            aliases: []models.EndpointAlias{
+                {
+                    ID: "1",
+                    Name: "EndpointAlias1",
+                    Type: "endpoint",
+                    EndpointURI: "https://example.com",
+                },
+            },
+            wantCount: 1,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            mockClient := &mockClient{aliases: tt.aliases}
+            
+            mgr := &Manager{
+                client: mockClient,
+                resolver: NewResolver(60 * time.Second),
+                log: logger,
+            }
+            
+            results, err := mgr.ListWithoutIPs(context.Background())
+            if err != nil {
+                t.Errorf("ListWithoutIPs() error = %v", err)
+            }
+            
+            if len(results) != tt.wantCount {
+                t.Errorf("len(results) = %v, want %v", len(results), tt.wantCount)
+            }
+            
+            // Verify all have Error="skipped"
+            for _, r := range results {
+                if r.Error != "skipped" {
+                    t.Errorf("Error = %v, want 'skipped'", r.Error)
+                }
+                if r.Resolved {
+                    t.Error("Resolved should be false")
+                }
+            }
+        })
+    }
+}
+
+func TestExtractHostname(t *testing.T) {
+    t.Parallel()
+    tests := []struct {
+        name    string
+        rawURL  string
+        want    string
+        wantErr bool
+    }{
+        {
+            name: "valid HTTPS URL",
+            rawURL: "https://api.example.com:8080/path",
+            want: "api.example.com",
+            wantErr: false,
+        },
+        {
+            name: "valid HTTP URL",
+            rawURL: "http://localhost:3000",
+            want: "localhost",
+            wantErr: false,
+        },
+        {
+            name: "URL without port",
+            rawURL: "https://example.com/path",
+            want: "example.com",
+            wantErr: false,
+        },
+        {
+            name: "invalid URL",
+            rawURL: "not-a-url",
+            want: "",
+            wantErr: true,
+        },
+        {
+            name: "URL without hostname",
+            rawURL: "file:///path/to/file",
+            want: "",
+            wantErr: true,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            got, err := extractHostname(tt.rawURL)
+            
+            if (err != nil) != tt.wantErr {
+                t.Errorf("extractHostname() error = %v, wantErr %v", err, tt.wantErr)
+            }
+            
+            if got != tt.want {
+                t.Errorf("extractHostname() = %v, want %v", got, tt.want)
+            }
+        })
+    }
+}
+```
+
+**Akzeptanzkriterien:**
+- ✅ Mock-Client implementiert
+- ✅ Filterung nach Endpoint-Typ getestet
+- ✅ DNS-Auflösung mit/ohne Fehler
+- ✅ Hostname-Extraktion verifiziert
+- ✅ ListWithoutIPs mit "skipped" Marker
+
+---
+
+### Test-Ausführung
+
+```bash
+# Alle Alias-Tests
+go test ./internal/alias/...
+
+# Mit Coverage
+go test -cover ./internal/alias/...
+
+# Verbose Output
+go test -v ./internal/alias/...
+
+# Coverage Report
+go test -coverprofile=coverage.out ./internal/alias/...
+go tool cover -html=coverage.out
+
+# Spezifischer Test
+go test -run TestFormatTable ./internal/alias/
+```
+
+### Implementierungs-Reihenfolge
+
+1. **Formatter Tests** (einfachst, keine Dependencies)
+   - Reine Input/Output Tests
+   - Keine Mocks benötigt
+   - Schnelle Implementierung
+   
+2. **Resolver Tests** (mittel, echte DNS-Calls)
+   - Verwendet echte DNS-Lookups
+   - Timeout-Tests
+   - Netzwerk-abhängig
+   
+3. **Manager Tests** (komplex, benötigt Mocks)
+   - Mock-Client implementieren
+   - Integration verschiedener Komponenten
+   - Umfangreichste Test-Suite
+
+### Ziel
+
+**Code-Coverage:** >80% für alle Alias-Komponenten
+- `formatter.go`: >90% (einfache Logik)
+- `resolver.go`: >80% (Netzwerk-Calls)
+- `alias.go`: >85% (Business-Logik)
+
+---
+
+**Erstellt:** 2026-06-25
+**Aktualisiert:** 2026-06-25
+**Branch:** `feature/12-endpoint-alias-listing`
 **Issue:** #12
