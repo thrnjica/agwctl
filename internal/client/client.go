@@ -17,7 +17,7 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json/v2"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -200,6 +200,46 @@ func (c *Client) ListTeams(
 	}
 
 	return &model, nil
+}
+
+// ListAliases fetches all aliases from the gateway.
+// Note: API does NOT support pagination - returns all aliases in one call.
+func (c *Client) ListAliases(
+	ctx context.Context,
+) ([]models.EndpointAlias, error) {
+	path := "/alias"
+
+	res, _, err := c.call(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("list aliases: %w", err)
+	}
+
+	var aliases []models.EndpointAlias
+	if err := unmarshal(res, &aliases); err != nil {
+		return nil, fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	return aliases, nil
+}
+
+// GetAlias fetches a single alias by ID.
+func (c *Client) GetAlias(
+	ctx context.Context,
+	aliasID string,
+) (*models.EndpointAlias, error) {
+	path := fmt.Sprintf("/alias/%s", url.PathEscape(aliasID))
+
+	res, _, err := c.call(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("get alias: %w", err)
+	}
+
+	var alias models.EndpointAlias
+	if err := unmarshal(res, &alias); err != nil {
+		return nil, fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	return &alias, nil
 }
 
 // Made with Bob
