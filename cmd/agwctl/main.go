@@ -35,19 +35,16 @@ var Version = "dev"
 
 func main() {
 	// Check for subcommands
-	if len(os.Args) >= 2 {
-		switch os.Args[1] {
-		case "aliases":
-			if len(os.Args) < 3 || os.Args[2] != "list" {
-				fmt.Fprintf(os.Stderr, "Usage: agwctl aliases list [flags]\n")
-				os.Exit(1)
-			}
-			if err := aliasesCommand(os.Args[3:]); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
+	if len(os.Args) >= 2 && os.Args[1] == "aliases" {
+		if len(os.Args) < 3 || os.Args[2] != "list" {
+			fmt.Fprintf(os.Stderr, "Usage: agwctl aliases list [flags]\n")
+			os.Exit(1)
 		}
+		if err := aliasesCommand(os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	// Run original monitoring functionality

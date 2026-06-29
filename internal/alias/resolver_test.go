@@ -25,7 +25,7 @@ func TestNewResolver(t *testing.T) {
 	resolver := NewResolver(timeout)
 
 	if resolver == nil {
-		t.Error("NewResolver() returned nil")
+		t.Fatal("NewResolver() returned nil")
 	}
 	if resolver.timeout != timeout {
 		t.Errorf("timeout = %v, want %v", resolver.timeout, timeout)

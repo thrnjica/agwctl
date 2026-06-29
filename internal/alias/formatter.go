@@ -27,24 +27,33 @@ import (
 // Displays alias name, endpoint URL, and resolved IP addresses in a formatted table.
 func FormatTable(w io.Writer, aliases []models.AliasInfo) error {
 	// Header
-	fmt.Fprintf(w, "%-30s %-50s %-40s\n", "ALIAS NAME", "ENDPOINT URL", "IP ADDRESSES")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 120))
+	if _, err := fmt.Fprintf(w, "%-30s %-50s %-40s\n", "ALIAS NAME", "ENDPOINT URL", "IP ADDRESSES"); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s\n", strings.Repeat("-", 120)); err != nil {
+		return err
+	}
 
 	// Rows
 	for _, alias := range aliases {
-		ips := "<DNS lookup failed>"
-		if alias.Resolved {
+		var ips string
+		switch {
+		case alias.Resolved:
 			ips = strings.Join(alias.IPAddresses, ", ")
-		} else if alias.Error == "skipped" {
+		case alias.Error == "skipped":
 			ips = "<skipped>"
-		} else if alias.Error != "" {
+		case alias.Error != "":
 			ips = fmt.Sprintf("<error: %s>", alias.Error)
+		default:
+			ips = "<DNS lookup failed>"
 		}
 
-		fmt.Fprintf(w, "%-30s %-50s %-40s\n",
+		if _, err := fmt.Fprintf(w, "%-30s %-50s %-40s\n",
 			truncate(alias.Name, 30),
 			truncate(alias.EndpointURL, 50),
-			truncate(ips, 40))
+			truncate(ips, 40)); err != nil {
+			return err
+		}
 	}
 
 	return nil
