@@ -57,7 +57,8 @@ func run() error {
 		slog.Int("page_size", cfg.PageSize),
 		slog.Int("rate_limit", cfg.RateLimit),
 		slog.String("db_path", cfg.DBPath),
-		slog.Bool("dry_run", cfg.DryRun))
+		slog.Bool("dry_run", cfg.DryRun),
+		slog.Bool("insecure", cfg.Insecure))
 
 	// Create context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -82,6 +83,7 @@ func run() error {
 		cfg.Password,
 		Version,
 		cfg.RateLimit,
+		cfg.Insecure,
 		log,
 	)
 

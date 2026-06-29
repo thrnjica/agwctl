@@ -15,6 +15,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"time"
@@ -101,8 +102,9 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // newOptimizedTransport creates a high-performance HTTP transport.
-func newOptimizedTransport() *http.Transport {
-	return &http.Transport{
+// If insecure is true, TLS certificate and hostname verification are disabled.
+func newOptimizedTransport(insecure bool) *http.Transport {
+	t := &http.Transport{
 		// Connection pooling
 		MaxIdleConns:        64,
 		MaxIdleConnsPerHost: 64,
@@ -123,12 +125,16 @@ func newOptimizedTransport() *http.Transport {
 		// Context-aware dialing
 		ForceAttemptHTTP2: true,
 	}
+	if insecure {
+		t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
+	}
+	return t
 }
 
 // newTransport creates a layered transport with all decorators.
-func newTransport(username, password, version string, rps int) http.RoundTripper {
+func newTransport(username, password, version string, rps int, insecure bool) http.RoundTripper {
 	// Start with optimized base transport
-	base := newOptimizedTransport()
+	base := newOptimizedTransport(insecure)
 
 	// Layer 1: Rate limiting (innermost)
 	var transport http.RoundTripper = newRateLimitTransport(base, rps)

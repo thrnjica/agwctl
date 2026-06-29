@@ -37,19 +37,21 @@ type Client struct {
 }
 
 // New creates a new API Gateway client with optimized transport.
+// Set insecure to true to disable TLS certificate and hostname verification.
 func New(
 	url,
 	username,
 	password,
 	version string,
 	rps int,
+	insecure bool,
 	log *slog.Logger,
 ) *Client {
 	return &Client{
 		url: url,
 		http: &http.Client{
 			Timeout:   30 * time.Second,
-			Transport: newTransport(username, password, version, rps),
+			Transport: newTransport(username, password, version, rps, insecure),
 		},
 		log: log,
 	}
