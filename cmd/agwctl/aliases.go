@@ -41,6 +41,7 @@ func aliasesCommand(args []string) error {
 	skipDNS := fs.Bool("skip-dns-resolution", false, "Skip DNS resolution of hostnames")
 	rateLimit := fs.Int("rate-limit", 10, "Max requests per second")
 	logLevel := fs.String("log-level", "info", "Log level: debug, info, warn, error")
+	insecure := fs.Bool("insecure", false, "Disable TLS certificate verification")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -67,7 +68,7 @@ func aliasesCommand(args []string) error {
 		"rate_limit", *rateLimit)
 
 	// Create client
-	c := client.New(*gatewayURL, *username, *password, Version, *rateLimit, log)
+	c := client.New(*gatewayURL, *username, *password, Version, *rateLimit, *insecure, log)
 
 	// Create alias manager
 	mgr := alias.NewManager(c, time.Duration(*timeout)*time.Second, log)

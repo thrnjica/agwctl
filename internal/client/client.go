@@ -210,7 +210,7 @@ func (c *Client) ListAliases(
 	}
 
 	var response models.AliasResponseModel
-	if err := unmarshal(res, &response); err != nil {
+	if err := json.Unmarshal(res, &response); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
@@ -230,7 +230,7 @@ func (c *Client) GetAlias(
 	}
 
 	var alias models.EndpointAlias
-	if err := unmarshal(res, &alias); err != nil {
+	if err := json.Unmarshal(res, &alias); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
