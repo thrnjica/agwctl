@@ -74,7 +74,8 @@ func run() error {
 		slog.Int("page_size", cfg.PageSize),
 		slog.Int("rate_limit", cfg.RateLimit),
 		slog.String("db_path", cfg.DBPath),
-		slog.Bool("dry_run", cfg.DryRun))
+		slog.Bool("dry_run", cfg.DryRun),
+		slog.Bool("insecure", cfg.Insecure))
 
 	// Create context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -99,13 +100,14 @@ func run() error {
 		cfg.Password,
 		Version,
 		cfg.RateLimit,
+		cfg.Insecure,
 		log,
 	)
 
 	// Initialize store repository
 	repo, err := store.New(cfg.DBPath, log)
 	if err != nil {
-		return fmt.Errorf("initialize repository: %w", err)
+		return fmt.Errorf("init repository: %w", err)
 	}
 	defer func() {
 		if err := repo.Close(); err != nil {

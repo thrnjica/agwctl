@@ -101,7 +101,7 @@ func (p *Poller) poll(ctx context.Context) error {
 	// Fetch all API IDs with pagination
 	all, err := p.list(ctx)
 	if err != nil {
-		return fmt.Errorf("fetch all API ids: %w", err)
+		return fmt.Errorf("fetch all api ids: %w", err)
 	}
 
 	p.log.Info("Fetched all APIs",
@@ -111,7 +111,7 @@ func (p *Poller) poll(ctx context.Context) error {
 	// Look for new APIs
 	ids, err := p.pending(all)
 	if err != nil {
-		return fmt.Errorf("detect new APIs: %w", err)
+		return fmt.Errorf("detect new apis: %w", err)
 	}
 
 	if len(ids) == 0 {
@@ -169,7 +169,7 @@ func (p *Poller) list(ctx context.Context) ([]string, error) {
 
 		res, err := p.client.ListAPIs(ctx, from, p.pageSize)
 		if err != nil {
-			return nil, fmt.Errorf("list APIs (page %d): %w", page, err)
+			return nil, fmt.Errorf("list apis (page %d): %w", page, err)
 		}
 
 		// Extract API IDs
@@ -201,7 +201,7 @@ func (p *Poller) pending(ids []string) ([]string, error) {
 	for _, id := range ids {
 		seen, err := p.repo.Processed(id)
 		if err != nil {
-			return nil, fmt.Errorf("check if processed %s: %w", id, err)
+			return nil, fmt.Errorf("api %s: %w", id, err)
 		}
 
 		if !seen {
@@ -219,13 +219,13 @@ func (p *Poller) process(ctx context.Context, id string) error {
 	// Fetch full API document
 	api, err := p.client.GetAPI(ctx, id)
 	if err != nil {
-		return fmt.Errorf("get API: %w", err)
+		return fmt.Errorf("get api: %w", err)
 	}
 
 	// Extract metadata
 	meta, err := p.proc.Metadata(api)
 	if err != nil {
-		return fmt.Errorf("extract metadata: %w", err)
+		return fmt.Errorf("extract api metadata: %w", err)
 	}
 
 	p.log.Info("API metadata extracted",
@@ -238,13 +238,13 @@ func (p *Poller) process(ctx context.Context, id string) error {
 	// Add teams to API JSON
 	mod, err := p.proc.AddTeamsToAPI(api, p.teamIDs)
 	if err != nil {
-		return fmt.Errorf("add teams to API: %w", err)
+		return fmt.Errorf("add teams to api: %w", err)
 	}
 
 	// Update API (unless dry-run)
 	if !p.dryRun {
 		if err := p.client.UpdateAPI(ctx, id, mod); err != nil {
-			return fmt.Errorf("update API: %w", err)
+			return fmt.Errorf("update api: %w", err)
 		}
 		p.log.Info("API updated successfully",
 			slog.String("api_id", id),
@@ -266,7 +266,7 @@ func (p *Poller) process(ctx context.Context, id string) error {
 	}
 
 	if err := p.repo.MarkProcessed(id, processed); err != nil {
-		return fmt.Errorf("mark as processed: %w", err)
+		return fmt.Errorf("mark api %s processed: %w", id, err)
 	}
 
 	return nil

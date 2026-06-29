@@ -29,14 +29,6 @@ import (
 	"github.com/thrnjica/agwctl/internal/models"
 )
 
-// unmarshal is a helper to unmarshal JSON with better error messages.
-func unmarshal(data []byte, v any) error {
-	if err := json.Unmarshal(data, v); err != nil {
-		return fmt.Errorf("unmarshal JSON: %w", err)
-	}
-	return nil
-}
-
 // Client provides HTTP communication with the API Gateway REST API.
 type Client struct {
 	url  string
@@ -45,19 +37,21 @@ type Client struct {
 }
 
 // New creates a new API Gateway client with optimized transport.
+// Set insecure to true to disable TLS certificate and hostname verification.
 func New(
 	url,
 	username,
 	password,
 	version string,
 	rps int,
+	insecure bool,
 	log *slog.Logger,
 ) *Client {
 	return &Client{
 		url: url,
 		http: &http.Client{
 			Timeout:   30 * time.Second,
-			Transport: newTransport(username, password, version, rps),
+			Transport: newTransport(username, password, version, rps, insecure),
 		},
 		log: log,
 	}
@@ -72,10 +66,11 @@ func (c *Client) call(
 	// Build URL properly to handle trailing slashes
 	base, err := url.Parse(c.url)
 	if err != nil {
-		return nil, 0, fmt.Errorf("parse base URL: %w", err)
+		return nil, 0, fmt.Errorf("parse base url: %w", err)
 	}
 	// Join paths properly, handling trailing/leading slashes
-	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + strings.TrimPrefix(path, "/")
+	base.Path = strings.TrimSuffix(base.Path, "/") + "/" +
+		strings.TrimPrefix(path, "/")
 	fullURL := base.String()
 
 	// Create request
@@ -144,11 +139,11 @@ func (c *Client) ListAPIs(
 
 	res, _, err := c.call(ctx, http.MethodGet, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("list APIs: %w", err)
+		return nil, fmt.Errorf("list apis: %w", err)
 	}
 
 	var model models.APIListResponse
-	if err := unmarshal(res, &model); err != nil {
+	if err := json.Unmarshal(res, &model); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
@@ -161,7 +156,7 @@ func (c *Client) GetAPI(ctx context.Context, id string) ([]byte, error) {
 
 	res, _, err := c.call(ctx, http.MethodGet, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("get API: %w", err)
+		return nil, fmt.Errorf("get api: %w", err)
 	}
 
 	return res, nil
@@ -195,7 +190,7 @@ func (c *Client) ListTeams(
 	}
 
 	var model models.TeamListResponse
-	if err := unmarshal(res, &model); err != nil {
+	if err := json.Unmarshal(res, &model); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 

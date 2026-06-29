@@ -44,6 +44,9 @@ type Config struct {
 	// Logging
 	LogLevel string
 	DryRun   bool
+
+	// TLS
+	Insecure bool
 }
 
 // LoadFromFlags parses command-line flags and returns a [Config].
@@ -61,6 +64,7 @@ func LoadFromFlags() (*Config, error) {
 	flag.StringVar(&cfg.DBPath, "db-path", "data", "Path to NutsDB database directory")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "Log level: debug, info, warn, error")
 	flag.BoolVar(&cfg.DryRun, "dry-run", false, "Simulate without making changes")
+	flag.BoolVar(&cfg.Insecure, "insecure", false, "Disable TLS certificate and hostname verification (use with caution)")
 
 	flag.Parse()
 
@@ -136,8 +140,8 @@ func (c *Config) Validate() error {
 
 // String returns a string representation of the config (without sensitive data).
 func (c *Config) String() string {
-	return fmt.Sprintf("Config{GatewayURL=%s, Username=%s, Teams=%v, Interval=%s, PageSize=%d, RateLimit=%d, DBPath=%s, LogLevel=%s, DryRun=%t}",
-		c.GatewayURL, c.Username, c.Teams, c.Interval, c.PageSize, c.RateLimit, c.DBPath, c.LogLevel, c.DryRun)
+	return fmt.Sprintf("Config{GatewayURL=%s, Username=%s, Teams=%v, Interval=%s, PageSize=%d, RateLimit=%d, DBPath=%s, LogLevel=%s, DryRun=%t, Insecure=%t}",
+		c.GatewayURL, c.Username, c.Teams, c.Interval, c.PageSize, c.RateLimit, c.DBPath, c.LogLevel, c.DryRun, c.Insecure)
 }
 
 // Made with Bob
