@@ -1,6 +1,5 @@
-# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
-
-version: "2"
+# golangci-lint configuration
+# Note: VSCode YAML schema may show errors, but this config works with golangci-lint
 
 run:
   build-tags:
@@ -10,12 +9,13 @@ run:
   timeout: 3m
 
 linters:
-  default: none
   enable:
     - errcheck
     - errname
     - errorlint
     - gocritic
+    - gofumpt
+    - goimports
     - goheader
     - gosec
     - govet
@@ -28,38 +28,34 @@ linters:
     - revive
     - staticcheck
 
-  settings:
-    goheader:
-      template: |-
-        Copyright (c) 2026 IBM (https://ibm.com)
+linters-settings:
+  goheader:
+    template: |-
+      Copyright (c) 2026 IBM (https://ibm.com)
 
-        Licensed under the Apache License, Version 2.0 (the "License");
-        you may not use this file except in compliance with the License.
-        You may obtain a copy of the License at
+      Licensed under the Apache License, Version 2.0 (the "License");
+      you may not use this file except in compliance with the License.
+      You may obtain a copy of the License at
 
-            http://www.apache.org/licenses/LICENSE-2.0
+          http://www.apache.org/licenses/LICENSE-2.0
 
-        Unless required by applicable law or agreed to in writing, software
-        distributed under the License is distributed on an "AS IS" BASIS,
-        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-        See the License for the specific language governing permissions and
-        limitations under the License.
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
 
-    revive:
-      confidence: 0.8
+  revive:
+    confidence: 0.8
 
-    gosec:
-      excludes:
-        - G104
+  gosec:
+    excludes:
+      - G104
 
-formatters:
-  enable:
-    - gofumpt
-    - goimports
+  gofumpt:
+    extra-rules: true
 
-  settings:
-    gofumpt:
-      extra-rules: true
+  goimports:
+    local-prefixes: github.com/thrnjica/agwctl
 
-    goimports:
-      local-prefixes: [github.com/thrnjica/agwctl]
+# Made with Bob

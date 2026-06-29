@@ -34,12 +34,14 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+        env:
+          GOEXPERIMENT: ${{ env.GOEXPERIMENT }}
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
-          args: --timeout=2m
+          args: --timeout=2m --build-tags=jsonv2
         env:
           GOEXPERIMENT: ${{ env.GOEXPERIMENT }}
 
