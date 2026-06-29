@@ -98,6 +98,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           BINARY_NAME="agwctl-${GOOS}-${GOARCH}"
