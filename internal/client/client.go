@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/thrnjica/agwctl/internal/models"
@@ -65,7 +66,8 @@ func (c *Client) call(
 	if err != nil {
 		return nil, 0, fmt.Errorf("parse base url: %w", err)
 	}
-	base.Path = path
+	// Join paths properly, handling trailing/leading slashes
+	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + strings.TrimPrefix(path, "/")
 	fullURL := base.String()
 
 	// Create request
