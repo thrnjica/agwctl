@@ -67,7 +67,8 @@ func (c *Client) call(
 		return nil, 0, fmt.Errorf("parse base url: %w", err)
 	}
 	// Join paths properly, handling trailing/leading slashes
-	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + strings.TrimPrefix(path, "/")
+	base.Path = strings.TrimSuffix(base.Path, "/") + "/" +
+		strings.TrimPrefix(path, "/")
 	fullURL := base.String()
 
 	// Create request
