@@ -13,8 +13,6 @@ linters:
     - errname
     - errorlint
     - gocritic
-    - gofumpt
-    - goimports
     - goheader
     - gosec
     - govet
@@ -49,5 +47,16 @@ linters:
     gosec:
       excludes:
         - G104
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/thrnjica/agwctl
 
 # Made with Bob
