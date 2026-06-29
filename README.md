@@ -1,9 +1,10 @@
-# API Gateway Automator (agwctl)
+# API Gateway Control (agwctl)
 
-A Go CLI tool that monitors the IBM webMethods API Gateway for newly created APIs and automatically adds specified teams to them.
+A Go CLI tool for managing and monitoring IBM webMethods API Gateway.
 
 ## Features
 
+### Monitor Command (Default)
 - **Automatic Team Assignment**: Monitors for new APIs and automatically adds configured teams
 - **Pagination Support**: Efficiently handles large deployments hosting thousands of APIs
 - **Rate Limiting**: Prevents request throttling errors with configurable request rate limiting
@@ -12,6 +13,13 @@ A Go CLI tool that monitors the IBM webMethods API Gateway for newly created API
 - **Structured Logging**: Prints JSON-formatted logs with configurable levels
 - **Graceful Shutdown**: Handles SIGINT/SIGTERM signals cleanly
 - **Dry-Run Mode**: Supports test runs without making actual changes
+
+### Aliases Command
+- **Endpoint Alias Listing**: Lists all configured endpoint aliases
+- **DNS Resolution**: Resolves hostnames to IP addresses with configurable timeout
+- **Multiple Output Formats**: Table (human-readable) and JSON (machine-readable)
+- **Fast Mode**: Skip DNS resolution for quick overview
+- **Network Diagnostics**: Identify unreachable backend systems
 
 ## Installation
 
@@ -36,9 +44,20 @@ make build
 make install
 ```
 
+## Commands
+
+`agwctl` bietet mehrere Befehle für verschiedene Gateway-Management-Aufgaben:
+
+| Command | Beschreibung | Dokumentation |
+|---------|--------------|---------------|
+| `monitor` (default) | Überwacht Gateway auf neue APIs und fügt Teams hinzu | [docs/commands/MONITOR.md](docs/commands/MONITOR.md) |
+| `aliases list` | Listet Endpoint-Aliase mit optionaler DNS-Auflösung | [docs/commands/ALIASES.md](docs/commands/ALIASES.md) |
+
 ## Usage
 
-### Minimal Case
+### Monitor Command (Default)
+
+Überwacht das Gateway kontinuierlich und fügt Teams zu neuen APIs hinzu:
 
 ```bash
 agwctl \
@@ -47,6 +66,21 @@ agwctl \
   --password=secret \
   --teams="DevTeam,QATeam"
 ```
+
+Siehe [Monitor Command Dokumentation](docs/commands/MONITOR.md) für Details.
+
+### Aliases Command
+
+Listet alle Endpoint-Aliase mit IP-Adressen:
+
+```bash
+agwctl aliases list \
+  --gateway-url=https://gateway.example.com:5555/rest/apigateway \
+  --username=admin \
+  --password=secret
+```
+
+Siehe [Aliases Command Dokumentation](docs/commands/ALIASES.md) für Details.
 
 ### Command-Line Flags
 
@@ -251,14 +285,21 @@ agwctl --log-level=debug [other flags...]
 ### Project Structure
 
 ```
-api-gateway-automator/
+agwctl/
 ├── cmd/
 │   └── agwctl/
-│       └── main.go              # CLI entry point
+│       ├── main.go              # CLI entry point
+│       └── aliases.go           # Aliases command
 ├── internal/
+│   ├── alias/
+│   │   ├── alias.go             # Alias manager
+│   │   ├── alias_test.go        # Manager tests (98.9% coverage)
+│   │   ├── formatter.go         # Output formatters
+│   │   ├── formatter_test.go    # Formatter tests (100% coverage)
+│   │   ├── resolver.go          # DNS resolver
+│   │   └── resolver_test.go     # Resolver tests (100% coverage)
 │   ├── client/
 │   │   ├── client.go            # HTTP client
-│   │   ├── ratelimit.go         # Rate limiter
 │   │   └── transport.go         # HTTP transport configuration
 │   ├── config/
 │   │   ├── config.go            # Configuration
@@ -266,7 +307,8 @@ api-gateway-automator/
 │   ├── logger/
 │   │   └── logger.go            # Structured logging
 │   ├── models/
-│   │   └── models.go            # Data models
+│   │   ├── models.go            # Data models
+│   │   └── alias.go             # Alias models
 │   ├── monitor/
 │   │   ├── poller.go            # Polling logic
 │   │   ├── processor.go         # JSON processing
@@ -275,10 +317,15 @@ api-gateway-automator/
 │   └── store/
 │       └── store.go             # NutsDB wrapper
 ├── docs/
+│   ├── commands/
+│   │   ├── MONITOR.md           # Monitor command documentation
+│   │   └── ALIASES.md           # Aliases command documentation
 │   ├── DEPENDENCIES.md          # Dependency justification
 │   ├── DESIGN.md                # Architecture documentation
+│   ├── ISSUE-12-PLAN.md         # Aliases feature implementation plan
 │   └── QUICKSTART.md            # Quick start guide
 ├── spec/
+│   ├── alias.openapi.json       # Alias API spec
 │   ├── apis.openapi.json        # API spec
 │   └── users.openapi.json       # User management spec
 ├── .editorconfig                # Editor configuration

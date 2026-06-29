@@ -1,16 +1,13 @@
-# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
-
+# golangci-lint configuration v2
 version: "2"
 
 run:
   build-tags:
     - jsonv2
   modules-download-mode: readonly
-  allow-parallel-runners: true
   timeout: 3m
 
 linters:
-  default: none
   enable:
     - errcheck
     - errname
@@ -27,7 +24,6 @@ linters:
     - prealloc
     - revive
     - staticcheck
-
   settings:
     goheader:
       template: |-
@@ -56,10 +52,11 @@ formatters:
   enable:
     - gofumpt
     - goimports
-
   settings:
     gofumpt:
       extra-rules: true
-
     goimports:
-      local-prefixes: [github.com/thrnjica/agwctl]
+      local-prefixes:
+        - github.com/thrnjica/agwctl
+
+# Made with Bob
