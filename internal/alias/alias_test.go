@@ -402,18 +402,17 @@ func TestExtractHostname(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:     "invalid URL",
-			url:      "not-a-valid-url",
-			want:     "",
-			wantErr:  true,
-			errMatch: "no hostname",
+			name:    "invalid URL",
+			url:     "not-a-valid-url",
+			want:    "not-a-valid-url",
+			wantErr: false,
 		},
 		{
 			name:     "empty URL",
 			url:      "",
 			want:     "",
 			wantErr:  true,
-			errMatch: "no hostname",
+			errMatch: "empty URL",
 		},
 		{
 			name:     "URL without hostname",

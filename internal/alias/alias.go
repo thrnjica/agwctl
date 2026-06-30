@@ -175,18 +175,35 @@ func (m *Manager) ListWithoutIPs(ctx context.Context) ([]models.AliasInfo, error
 }
 
 // extractHostname extracts the hostname from a URL.
+// It handles three cases:
+//  1. A fully-qualified URL with a scheme (e.g. https://host/path) — normal parse.
+//  2. A bare hostname with no scheme (e.g. "myhost.example.com") — url.Parse
+//     places the value in Path instead of Host; we use it directly after trimming.
+//  3. Leading/trailing whitespace anywhere in the raw value — trimmed before parsing.
 func extractHostname(rawURL string) (string, error) {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return "", fmt.Errorf("empty URL")
+	}
+
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", fmt.Errorf("parse URL: %w", err)
 	}
 
-	hostname := u.Hostname()
-	if hostname == "" {
+	if h := u.Hostname(); h != "" {
+		return h, nil
+	}
+
+	// No scheme present: url.Parse put the value in Path.
+	// Strip any path suffix (first '/') and use what remains as the hostname.
+	bare := strings.TrimSpace(u.Path)
+	bare = strings.SplitN(bare, "/", 2)[0]
+	if bare == "" {
 		return "", fmt.Errorf("no hostname in URL")
 	}
 
-	return hostname, nil
+	return bare, nil
 }
 
 // countResolved counts how many aliases were successfully resolved.
