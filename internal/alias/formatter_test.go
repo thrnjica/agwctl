@@ -65,7 +65,7 @@ func TestFormatTable(t *testing.T) {
 			wantContains: []string{
 				"TestAlias2",
 				"https://invalid.local",
-				"ERROR",
+				"<error>",
 			},
 		},
 		{

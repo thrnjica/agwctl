@@ -43,9 +43,9 @@ func FormatTable(w io.Writer, aliases []models.AliasInfo) error {
 		case alias.Error == "skipped":
 			ips = "<skipped>"
 		case alias.Error != "":
-			ips = "ERROR"
+			ips = "<error>"
 		default:
-			ips = "ERROR"
+			ips = "<error>"
 		}
 
 		if _, err := fmt.Fprintf(w, "%-30s %-50s %-40s\n",
