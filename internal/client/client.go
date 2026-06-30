@@ -63,14 +63,17 @@ func (c *Client) call(
 	method, path string,
 	body []byte,
 ) ([]byte, int, error) {
-	// Build URL properly to handle trailing slashes
+	// Build URL properly to handle trailing slashes and query strings.
+	// Split path and query before assigning so url.String() does not
+	// percent-encode the '?' separator.
 	base, err := url.Parse(c.url)
 	if err != nil {
 		return nil, 0, fmt.Errorf("parse base url: %w", err)
 	}
-	// Join paths properly, handling trailing/leading slashes
+	rawPath, rawQuery, _ := strings.Cut(path, "?")
 	base.Path = strings.TrimSuffix(base.Path, "/") + "/" +
-		strings.TrimPrefix(path, "/")
+		strings.TrimPrefix(rawPath, "/")
+	base.RawQuery = rawQuery
 	fullURL := base.String()
 
 	// Create request
